@@ -40,6 +40,8 @@ func StartHttpServer() {
 	recvPath := os.Getenv("RECV_PATH")
 	if recvPath == "" {
 		recvPath = "/frecv"
+	} else {
+		log.Printf("receive at %s\n", recvPath)
 	}
 
 	http.Handle(recvPath, receiver)
