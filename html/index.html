@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>freq chart</title> 
+</head>
+<body>
+
+<div id="current-users">---</div>
+<label for="area">Area</label>
+<select id="area" onchange="areaUpdate(this.value);">
+<option value="kyoto">Kyoto(60Hz)</option select>
+<option value="tokyo">Tokyo(50Hz)</option>
+</select>
+<div class="chart-container" style="position: relative; height:40vh; width:80vw">    
+<canvas id="freqChart"></canvas>
+</div>
+<!-- import libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js" integrity="sha512-QSkVNOCYLtj73J4hbmVoOV6KVZuMluZlioC+trLpewV8qMjsWqlIQvkn1KGX2StWvPMdWGBqim1xlC8krl1EKQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js" integrity="sha512-qTXRIMyZIFb8iQcfjXWCO8+M5Tbc38Qi5WzdPOYZHIlZpzBHG3L3by84BBBOiRGiEb7KKtAOAs5qYdUiZiQNNQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-adapter-moment/1.0.0/chartjs-adapter-moment.min.js" integrity="sha512-oh5t+CdSBsaVVAvxcZKy3XJdP7ZbYUBSRCXDTVn0ODewMDDNnELsrG9eDm8rVZAQg7RsDD/8K3MjPAFB13o6eA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-streaming/2.0.0/chartjs-plugin-streaming.min.js" integrity="sha512-pSxAn0V22F4p92VllULJWP5yR5a5FfSPCzHum2P7MrbzmYNiaYsED0UZUF9JzRSZvRlemas5Yqf7F90xFvFthA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<!-- code -->
+<script>
+function startDrawGraph(target,place){
+    const ctx = document.getElementById('freqChart').getContext('2d');
+    const config = {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Freq(Hz)',
+                data: [],
+            }]
+        },
+        options :{
+            pointRadius: 1,
+            borderColor: "rgb(0, 191, 255)",
+            scales: {
+                x: {
+                    type: 'realtime',
+                    realtime:{
+                        duration: 10*60*1000
+                    }
+                },
+                y:{
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            return  ctx.raw + "Hz";
+                        }
+                    },
+                },
+                legend: {
+                    labels: {
+                        usePointStyle: true,
+                    }
+                }
+            },
+        }
+    };
+
+    const freqChart = new Chart(ctx, config);
+
+    const dumpUri = target + 'dump?place=' + place;
+
+   const textModMsg = document.getElementById('current-users');
+   fetch(dumpUri)
+        .then(response =>{
+            if (!response.ok) {
+                throw new Error('Network response was not OK');
+            }
+            return response.json();
+        }).then(data => {
+            if(!Array.isArray(data)){
+                return;
+            }
+
+            data.forEach(element => {
+                config.data.labels.unshift(new Date(1000 * element.t));
+                config.data.datasets[0].data.unshift(element.f);
+            });
+
+            freqChart.update('quiet');
+        }
+    ).then(() =>{
+        const wsUriBase = new URL(target);
+        wsUriBase.protocol = wsUriBase.protocol === 'http:' ? 'ws:' : 'wss:';
+        const wsUri = wsUriBase + 'ws?place=' +place;
+        const wsc = new WebSocket(wsUri);
+ 
+        wsc.onmessage = function(event) {
+            const element = JSON.parse(event.data);
+            config.data.labels.push(new Date(1000 * element.t));
+            config.data.datasets[0].data.push(element.f);
+            textModMsg.textContent = element.c + "users.";
+            freqChart.update('quiet');
+        };
+        // dirty hack....
+        freqChart.websock_obj = wsc;
+    }).catch((reason)=>{
+        textModMsg.textContent = reason;
+    });
+
+    return function(){
+        freqChart.destroy();
+        if('websock_obj' in freqChart){
+            freqChart.websock_obj.close();
+        }
+    };
+}
+</script>
+<script>
+const targetHost = 'http://localhost:8080/';
+let closer = startDrawGraph(targetHost,'kyoto');
+function areaUpdate(place){
+    closer();
+    closer = startDrawGraph(targetHost,place);
+}
+</script>
+
+</body></html>
