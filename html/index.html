@@ -12,6 +12,11 @@
 <option value="kyoto">Kyoto(60Hz)</option select>
 <option value="tokyo">Tokyo(50Hz)</option>
 </select>
+
+<div id="ambient">
+You can see more long span data at <a href="https://ambidata.io/bd/board.html?id=37603">Ambient</a>.
+</div>
+
 <div class="chart-container" style="position: relative; height:40vh; width:80vw">    
 <canvas id="freqChart"></canvas>
 </div>
@@ -114,12 +119,13 @@ function startDrawGraph(target,place){
 }
 </script>
 <script>
-const targetHost = 'http://localhost:8080/';
+const targetHost = 'https://www2.zxvf.jp/freqWatch/d/';
 let closer = startDrawGraph(targetHost,'kyoto');
 function areaUpdate(place){
     closer();
     closer = startDrawGraph(targetHost,place);
 }
 </script>
+
 
 </body></html>
