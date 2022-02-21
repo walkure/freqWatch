@@ -21,7 +21,7 @@ func Test_DumperSimple(t *testing.T) {
 	dbr.PushBack(&databin.FreqDatum{Epoch: 3, Freq: 0.3})
 
 	got = dumper.generateJSON("testPlace")
-	expected := `[{"t":3,"f":0.300000},{"t":2,"f":0.200000},{"t":1,"f":0.100000}]`
+	expected := `[{"t":3,"f":0.3},{"t":2,"f":0.2},{"t":1,"f":0.1}]`
 	if got != expected {
 		t.Errorf("first-generate:unexpected response.expected:%s got:%s\n", expected, got)
 	}
@@ -34,7 +34,7 @@ func Test_DumperSimple(t *testing.T) {
 
 	dumper.InvalidateJsonCache("testPlace")
 	got = dumper.generateJSON("testPlace")
-	expected = `[{"t":4,"f":0.400000},{"t":3,"f":0.300000},{"t":2,"f":0.200000},{"t":1,"f":0.100000}]`
+	expected = `[{"t":4,"f":0.4},{"t":3,"f":0.3},{"t":2,"f":0.2},{"t":1,"f":0.1}]`
 	if got != expected {
 		t.Errorf("second-generate:unexpected response.expected:%s got:%s\n", expected, got)
 	}

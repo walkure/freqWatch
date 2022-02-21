@@ -22,7 +22,7 @@ func StartHttpServer() {
 	}
 
 	receiver := &receiverHandler{
-		Callback: func(place string, freq float32) {
+		Callback: func(place string, freq float64) {
 			log.Printf("place:%s,freq:%f\n", place, freq)
 
 			datum := &databin.FreqDatum{

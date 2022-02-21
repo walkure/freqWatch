@@ -8,7 +8,7 @@ import (
 	"strconv"
 )
 
-type ReceiveCallback func(place string, value float32)
+type ReceiveCallback func(place string, value float64)
 
 type receiverHandler struct {
 	Callback ReceiveCallback
@@ -45,7 +45,7 @@ func (h *receiverHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	freq, err := strconv.ParseFloat(freqParam, 32)
+	freq, err := strconv.ParseFloat(freqParam, 64)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -55,6 +55,6 @@ func (h *receiverHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "OK")
 
 	if h.Callback != nil {
-		h.Callback(place, float32(freq))
+		h.Callback(place, freq)
 	}
 }

@@ -4,7 +4,7 @@ import "encoding/json"
 
 type FreqDatum struct {
 	Epoch int64   `json:"t"`
-	Freq  float32 `json:"f"`
+	Freq  float64 `json:"f"`
 }
 
 func (d FreqDatum) ToJSON() string {

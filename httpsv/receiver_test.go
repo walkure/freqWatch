@@ -15,7 +15,7 @@ func Test_recv_handler(t *testing.T) {
 	}
 	type resp struct {
 		code  int
-		value float32
+		value float64
 		place string
 	}
 	tests := []struct {
@@ -54,7 +54,7 @@ func Test_recv_handler(t *testing.T) {
 			req := httptest.NewRequest(tt.args.method, tt.args.target, bytes.NewBufferString(tt.args.body))
 			res := httptest.NewRecorder()
 			receiver := &receiverHandler{
-				Callback: func(place string, freq float32) {
+				Callback: func(place string, freq float64) {
 					if freq != tt.resp.value {
 						t.Errorf("want %f, but %f", tt.resp.value, freq)
 					}
