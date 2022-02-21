@@ -77,32 +77,50 @@ func (h *notificatorHandler) notification(place string, w http.ResponseWriter, r
 		h.places[updateMessage] = place
 	}()
 
-	// receiver goroutine waiting for close websocket.
+	pingResult := make(chan string, 1)
+	defer close(pingResult)
+
+	// receiver goroutine waiting for control/ping message or close websocket.
 	go func() {
 		defer ws.Close()
-
-		ws.SetReadLimit(3)
+		ws.SetReadLimit(6) // maximum ping message size
 		ws.SetReadDeadline(time.Now().Add(pongWait))
-		ws.SetPongHandler(func(string) error { ws.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 
-		// waiting for something receive or close socket.
-		ws.ReadMessage()
+		// handle pong(send ping from us).
+		ws.SetPongHandler(func(msg string) error {
+			ws.SetReadDeadline(time.Now().Add(pongWait))
+			return nil
+		})
+
+		for {
+			// process any messages(includes control messages)
+			_, message, err := ws.ReadMessage()
+			if err != nil {
+				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+					log.Printf("error: %v", err)
+				}
+				break
+			}
+			if string(message) == "\"ping\"" {
+				pingResult <- "\"pong\""
+			}
+		}
 	}()
 
 	// writer loop
 	for loop := true; loop; {
 		select {
 		case <-pinger.C:
-			if err := ws.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(writeWait)); err != nil {
+			if err := ws.WriteControl(websocket.PingMessage, []byte("ping"), time.Now().Add(writeWait)); err != nil {
 				ws.Close()
 				loop = false
 			}
-		case msg, ok := <-updateMessage:
+		case updateMsg, ok := <-updateMessage:
 			if ok {
 				data := notifyData{
 					FreqDatum: databin.FreqDatum{
-						Epoch: msg.Epoch,
-						Freq:  msg.Freq,
+						Epoch: updateMsg.Epoch,
+						Freq:  updateMsg.Freq,
 					},
 					Clients: len(h.clients),
 				}
@@ -116,13 +134,24 @@ func (h *notificatorHandler) notification(place string, w http.ResponseWriter, r
 				ws.Close()
 				loop = false
 			}
+		case pongMsg, ok := <-pingResult:
+			if ok {
+				ws.SetWriteDeadline(time.Now().Add(writeWait))
+				if err := ws.WriteMessage(websocket.TextMessage, []byte(pongMsg)); err != nil {
+					ws.Close()
+					loop = false
+				}
+			}
 		}
 	}
+
 	func() {
 		h.mu.Lock()
 		defer h.mu.Unlock()
 		delete(h.clients, ws)
 		delete(h.places, updateMessage)
+
+		//should close channel after removes from  clients list.
 		close(updateMessage)
 	}()
 }
