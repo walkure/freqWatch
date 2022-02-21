@@ -35,6 +35,8 @@ func StartHttpServer() {
 		ShareKey: shareKey,
 	}
 
+	openmetrics := NewOpenMetricsHandler()
+
 	recvPath := os.Getenv("RECV_PATH")
 	if recvPath == "" {
 		recvPath = "/frecv"
@@ -42,7 +44,15 @@ func StartHttpServer() {
 		log.Printf("receive at %s\n", recvPath)
 	}
 
+	metricsPath := os.Getenv("METRICS_PATH")
+	if metricsPath == "" {
+		metricsPath = "/metrics"
+	} else {
+		log.Printf("metrics at %s\n", metricsPath)
+	}
+
 	http.Handle(recvPath, receiver)
+	http.Handle(metricsPath, openmetrics)
 	http.Handle("/dump", dumper)
 	http.Handle("/ws", notifier)
 
