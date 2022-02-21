@@ -94,7 +94,8 @@ func (h *notificatorHandler) notification(place string, w http.ResponseWriter, r
 		select {
 		case <-pinger.C:
 			if err := ws.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(writeWait)); err != nil {
-				log.Println("ping:", err)
+				ws.Close()
+				loop = false
 			}
 		case msg, ok := <-updateMessage:
 			if ok {
