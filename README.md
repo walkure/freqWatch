@@ -56,3 +56,24 @@ server{
         }
 }
 ```
+
+### systemd
+
+きょうびdaemonはsystemdで管理するので、Unit fileを雑に書く。
+
+
+```systemd
+[Unit]
+Description=freq receiver
+After=network-online.target nginx.service
+
+[Service]
+User=nobody
+ExecStart=/usr/local/bin/freq_recv
+Environment=SHARE_KEY=fds998fsdfscjdje
+Restart=always
+RestartSec=30s
+
+[Install]
+WantedBy=multi-user.target
+```
