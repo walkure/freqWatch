@@ -21,6 +21,8 @@ func StartHttpServer() {
 		log.Fatal("SHARE_KEY is mandatory envrions.")
 	}
 
+	openmetrics := NewOpenMetricsHandler()
+
 	receiver := &receiverHandler{
 		Callback: func(place string, freq float64) {
 			datum := &databin.FreqDatum{
@@ -31,11 +33,10 @@ func StartHttpServer() {
 			dbr.PushBack(datum)
 			dumper.InvalidateJsonCache(place)
 			notifier.Notify(place, datum)
+			openmetrics.Update(place, datum)
 		},
 		ShareKey: shareKey,
 	}
-
-	openmetrics := NewOpenMetricsHandler()
 
 	recvPath := os.Getenv("RECV_PATH")
 	if recvPath == "" {
