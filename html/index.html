@@ -27,7 +27,7 @@ You can see more long span data at <a href="https://ambidata.io/bd/board.html?id
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-streaming/2.0.0/chartjs-plugin-streaming.min.js" integrity="sha512-pSxAn0V22F4p92VllULJWP5yR5a5FfSPCzHum2P7MrbzmYNiaYsED0UZUF9JzRSZvRlemas5Yqf7F90xFvFthA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- code -->
 <script>
-function startDrawGraph(target,place){
+function setupChart(){
     const ctx = document.getElementById('freqChart').getContext('2d');
     const config = {
         type: 'line',
@@ -70,25 +70,36 @@ function startDrawGraph(target,place){
 
     const freqChart = new Chart(ctx, config);
 
-    const dumpUri = target + 'dump?place=' + place;
+    window.freqChartData = {
+        "chart": freqChart,
+        "config": config,
+    }
+}
 
+function beginChartDrawing(target,place){
+    const dumpUri = target + 'dump?place=' + place;
     const textModMsg = document.getElementById('current-users');
+
+    const labels = [];
+    const data = [];
+    const freqChart = window.freqChartData.chart;
+    window.freqChartData.config.data.labels = labels;
+    window.freqChartData.config.data.datasets[0].data = data;
+
     const dataLoader = () => fetch(dumpUri)
         .then(response =>{
             if (!response.ok) {
                 throw new Error('Network response was not OK');
             }
             return response.json();
-        }).then(data => {
-            if(!Array.isArray(data)){
+        }).then(dumpData => {
+            if(!Array.isArray(dumpData)){
                 return;
             }
 
-            config.data.labels = [];
-            config.data.datasets[0].data = [];
-            data.forEach(element => {
-                config.data.labels.unshift(new Date(1000 * element.t));
-                config.data.datasets[0].data.unshift(element.f);
+            dumpData.forEach(element => {
+                labels.unshift(new Date(1000 * element.t));
+                data.unshift(element.f);
             });
 
             freqChart.update('quiet');
@@ -101,8 +112,8 @@ function startDrawGraph(target,place){
  
         wsc.onmessage = (event) => {
             const element = JSON.parse(event.data);
-            config.data.labels.push(new Date(1000 * element.t));
-            config.data.datasets[0].data.push(element.f);
+            labels.push(new Date(1000 * element.t));
+            data.push(element.f);
             textModMsg.textContent = element.c + "users.";
             freqChart.update('quiet');
         };
@@ -113,30 +124,22 @@ function startDrawGraph(target,place){
             dataLoader();
         };
 
-        // dirty hack....
-        freqChart.websock_obj = wsc;
     }).catch((reason)=>{
         textModMsg.textContent = reason;
     });
 
     // load data and connect websocket.
     dataLoader();
-
-    return function(){
-        freqChart.destroy();
-        if('websock_obj' in freqChart){
-            freqChart.websock_obj.close();
-        }
-    };
+}
+function areaUpdate(place){
+    const targetHost = 'https://www2.zxvf.jp/freqWatch/d/';
+//    const targetHost = 'http://localhost:8080/';
+    beginChartDrawing(targetHost,place);
 }
 </script>
 <script>
-const targetHost = 'https://www2.zxvf.jp/freqWatch/d/';
-let closer = startDrawGraph(targetHost,'kyoto');
-function areaUpdate(place){
-    closer();
-    closer = startDrawGraph(targetHost,place);
-}
+setupChart();
+areaUpdate('kyoto');
 </script>
 
 
