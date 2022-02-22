@@ -15,3 +15,7 @@ Arduino でビルドできるはず。
 ## LCDライブラリについて
 
 オリジナルは[キャラクタLCD表示用ライブラリ](http://www.inoshita.jp/freo/view/396)にあります。
+
+## 回路図例
+
+![esp32_schematics](https://user-images.githubusercontent.com/1270667/155192913-923ecf8e-ce2f-4f25-bd33-b7053d709d4b.png)
