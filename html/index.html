@@ -72,8 +72,8 @@ function startDrawGraph(target,place){
 
     const dumpUri = target + 'dump?place=' + place;
 
-   const textModMsg = document.getElementById('current-users');
-   fetch(dumpUri)
+    const textModMsg = document.getElementById('current-users');
+    const dataLoader = () => fetch(dumpUri)
         .then(response =>{
             if (!response.ok) {
                 throw new Error('Network response was not OK');
@@ -84,6 +84,8 @@ function startDrawGraph(target,place){
                 return;
             }
 
+            config.data.labels = [];
+            config.data.datasets[0].data = [];
             data.forEach(element => {
                 config.data.labels.unshift(new Date(1000 * element.t));
                 config.data.datasets[0].data.unshift(element.f);
@@ -97,18 +99,28 @@ function startDrawGraph(target,place){
         const wsUri = wsUriBase + 'ws?place=' +place;
         const wsc = new WebSocket(wsUri);
  
-        wsc.onmessage = function(event) {
+        wsc.onmessage = (event) => {
             const element = JSON.parse(event.data);
             config.data.labels.push(new Date(1000 * element.t));
             config.data.datasets[0].data.push(element.f);
             textModMsg.textContent = element.c + "users.";
             freqChart.update('quiet');
         };
+
+        wsc.onclose = (event) => {
+            console.log(Date(Date.now()).toString()+"close:"+JSON.stringify(event)+" code:"+event.code+" wasClean:"+event.wasClean+" reason:"+event.reason);
+             // re-load data and connect websocket
+            dataLoader();
+        };
+
         // dirty hack....
         freqChart.websock_obj = wsc;
     }).catch((reason)=>{
         textModMsg.textContent = reason;
     });
+
+    // load data and connect websocket.
+    dataLoader();
 
     return function(){
         freqChart.destroy();
