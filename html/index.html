@@ -85,6 +85,7 @@ function beginChartDrawing(target,place){
     const freqChart = window.freqChartData.chart;
     window.freqChartData.config.data.labels = labels;
     window.freqChartData.config.data.datasets[0].data = data;
+    freqChart.update('quiet');
 
     const dataLoader = () => fetch(dumpUri)
         .then(response =>{
