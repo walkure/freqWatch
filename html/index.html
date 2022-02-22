@@ -104,29 +104,28 @@ function beginChartDrawing(target,place){
             });
 
             freqChart.update('quiet');
-        }
-    ).then(() =>{
-        const wsUriBase = new URL(target);
-        wsUriBase.protocol = wsUriBase.protocol === 'http:' ? 'ws:' : 'wss:';
-        const wsUri = wsUriBase + 'ws?place=' +place;
-        const wsc = new WebSocket(wsUri);
- 
-        wsc.onmessage = (event) => {
-            const element = JSON.parse(event.data);
-            labels.push(new Date(1000 * element.t));
-            data.push(element.f);
-            textModMsg.textContent = element.c + "users.";
-            freqChart.update('quiet');
-        };
+        }).then(() =>{
+            const wsUriBase = new URL(target);
+            wsUriBase.protocol = wsUriBase.protocol === 'http:' ? 'ws:' : 'wss:';
+            const wsUri = wsUriBase + 'ws?place=' +place;
+            const wsc = new WebSocket(wsUri);
+    
+            wsc.onmessage = (event) => {
+                const element = JSON.parse(event.data);
+                labels.push(new Date(1000 * element.t));
+                data.push(element.f);
+                textModMsg.textContent = element.c + "users.";
+                freqChart.update('quiet');
+            };
 
-        wsc.onclose = (event) => {
-            console.log(Date(Date.now()).toString()+"close:"+JSON.stringify(event)+" code:"+event.code+" wasClean:"+event.wasClean+" reason:"+event.reason);
-             // re-load data and connect websocket
-            dataLoader();
-        };
+            wsc.onclose = (event) => {
+                console.log(Date(Date.now()).toString()+"close:"+JSON.stringify(event)+" code:"+event.code+" wasClean:"+event.wasClean+" reason:"+event.reason);
+                // re-load data and connect websocket
+                dataLoader();
+            };
 
-    }).catch((reason)=>{
-        textModMsg.textContent = reason;
+        }).catch((reason)=>{
+            textModMsg.textContent = reason;
     });
 
     // load data and connect websocket.
