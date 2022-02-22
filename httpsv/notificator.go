@@ -47,8 +47,13 @@ func (h *notificatorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-
-	h.notification(place, w, r)
+	ws, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Print(err)
+		// http error wrote in Upgrade()
+		return
+	}
+	h.wsNotification(place, ws)
 
 }
 
@@ -57,17 +62,7 @@ type notifyData struct {
 	Clients int `json:"c"`
 }
 
-func (h *notificatorHandler) notification(place string, w http.ResponseWriter, r *http.Request) {
-	ws, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Print(err)
-		// http error wrote in Upgrade()
-		return
-	}
-	defer ws.Close()
-
-	pinger := time.NewTicker(pingPeriod)
-	defer pinger.Stop()
+func (h *notificatorHandler) wsNotification(place string, ws *websocket.Conn) {
 
 	updateMessage := make(chan *databin.FreqDatum, 1)
 	func() {
@@ -78,36 +73,17 @@ func (h *notificatorHandler) notification(place string, w http.ResponseWriter, r
 	}()
 
 	pingResult := make(chan string, 1)
-	defer close(pingResult)
 
-	// receiver goroutine waiting for control/ping message or close websocket.
-	go func() {
-		defer ws.Close()
-		ws.SetReadLimit(6) // maximum ping message size
-		ws.SetReadDeadline(time.Now().Add(pongWait))
+	go wsReceiver(ws, pingResult)
+	go h.wsTransmitter(ws, updateMessage, pingResult)
+}
 
-		// handle pong(send ping from us).
-		ws.SetPongHandler(func(msg string) error {
-			ws.SetReadDeadline(time.Now().Add(pongWait))
-			return nil
-		})
-
-		for {
-			// process any messages(includes control messages)
-			_, message, err := ws.ReadMessage()
-			if err != nil {
-				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-					log.Printf("error: %v", err)
-				}
-				break
-			}
-			if string(message) == "\"ping\"" {
-				pingResult <- "\"pong\""
-			}
-		}
-	}()
+func (h *notificatorHandler) wsTransmitter(ws *websocket.Conn, updateMessage chan *databin.FreqDatum, pingResult chan string) {
+	defer ws.Close()
 
 	// writer loop
+	pinger := time.NewTicker(pingPeriod)
+	defer pinger.Stop()
 	for loop := true; loop; {
 		select {
 		case <-pinger.C:
@@ -144,6 +120,8 @@ func (h *notificatorHandler) notification(place string, w http.ResponseWriter, r
 			}
 		}
 	}
+	log.Printf("websock closing")
+	defer close(pingResult)
 
 	func() {
 		h.mu.Lock()
@@ -154,6 +132,33 @@ func (h *notificatorHandler) notification(place string, w http.ResponseWriter, r
 		//should close channel after removes from  clients list.
 		close(updateMessage)
 	}()
+}
+
+// receiver goroutine waiting for control/ping message or close websocket.
+func wsReceiver(ws *websocket.Conn, pingResult chan string) {
+	defer ws.Close()
+	ws.SetReadLimit(6) // maximum ping message size
+	ws.SetReadDeadline(time.Now().Add(pongWait))
+
+	// handle pong(send ping from us).
+	ws.SetPongHandler(func(msg string) error {
+		ws.SetReadDeadline(time.Now().Add(pongWait))
+		return nil
+	})
+
+	for {
+		// process any messages(process control message completes internally. )
+		_, message, err := ws.ReadMessage()
+		if err != nil {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				log.Printf("error: %v", err)
+			}
+			break
+		}
+		if string(message) == "\"ping\"" {
+			pingResult <- "\"pong\""
+		}
+	}
 }
 
 func (h *notificatorHandler) Notify(place string, datum *databin.FreqDatum) {
