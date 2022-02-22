@@ -120,8 +120,6 @@ func (h *notificatorHandler) wsTransmitter(ws *websocket.Conn, updateMessage cha
 			}
 		}
 	}
-	log.Printf("websock closing")
-	defer close(pingResult)
 
 	func() {
 		h.mu.Lock()
@@ -137,6 +135,7 @@ func (h *notificatorHandler) wsTransmitter(ws *websocket.Conn, updateMessage cha
 // receiver goroutine waiting for control/ping message or close websocket.
 func wsReceiver(ws *websocket.Conn, pingResult chan string) {
 	defer ws.Close()
+	defer close(pingResult)
 	ws.SetReadLimit(6) // maximum ping message size
 	ws.SetReadDeadline(time.Now().Add(pongWait))
 
