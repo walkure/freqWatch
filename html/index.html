@@ -7,9 +7,9 @@
 <body>
 
 <div id="current-users">---</div>
-<label for="area">Area</label>
-<select id="area" onchange="areaUpdate(this.value);">
-<option value="kyoto">Kyoto(60Hz)</option select>
+<label for="area-selector">Area</label>
+<select id="area-selector" onchange="areaUpdate(this.value);">
+<option value="kyoto" selected>Kyoto(60Hz)</option >
 <option value="tokyo">Tokyo(50Hz)</option>
 </select>
 
@@ -83,7 +83,7 @@ function beginChartDrawing(target,place){
     const freqChart = window.freqChartData.chart;
 
     const dataLoader = () => fetch(dumpUri)
-        .then(response =>{
+        .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not OK');
             }
@@ -104,13 +104,13 @@ function beginChartDrawing(target,place){
             });
 
             freqChart.update('quiet');
-        }).then(() =>{
+        }).then(() => {
             const wsUriBase = new URL(target);
             wsUriBase.protocol = wsUriBase.protocol === 'http:' ? 'ws:' : 'wss:';
             const wsUri = wsUriBase + 'ws?place=' +place;
             const wsc = new WebSocket(wsUri);
     
-            wsc.onmessage = (event) => {
+            wsc.onmessage = event => {
                 const element = JSON.parse(event.data);
                 window.freqChartData.config.data.labels.push(new Date(1000 * element.t));
                 window.freqChartData.config.data.datasets[0].data.push(element.f);
@@ -118,13 +118,13 @@ function beginChartDrawing(target,place){
                 freqChart.update('quiet');
             };
 
-            wsc.onclose = (event) => {
+            wsc.onclose = event => {
                 console.log(Date(Date.now()).toString()+"close:"+JSON.stringify(event)+" code:"+event.code+" wasClean:"+event.wasClean+" reason:"+event.reason);
                 // re-load data and connect websocket
                 dataLoader();
             };
 
-        }).catch((reason)=>{
+        }).catch(reason => {
             textModMsg.textContent = reason;
     });
 
@@ -136,10 +136,15 @@ function areaUpdate(place){
 //    const targetHost = 'http://localhost:8080/';
     beginChartDrawing(targetHost,place);
 }
+function initialize(){
+    setupChart();
+    const areaSelector = document.getElementById( "area-selector" );
+    const selectedArea = areaSelector.options[areaSelector.selectedIndex].value;
+    areaUpdate(selectedArea);
+}
 </script>
 <script>
-setupChart();
-areaUpdate('kyoto');
+initialize();
 </script>
 
 
