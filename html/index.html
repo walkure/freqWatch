@@ -80,12 +80,7 @@ function beginChartDrawing(target,place){
     const dumpUri = target + 'dump?place=' + place;
     const textModMsg = document.getElementById('current-users');
 
-    const labels = [];
-    const data = [];
     const freqChart = window.freqChartData.chart;
-    window.freqChartData.config.data.labels = labels;
-    window.freqChartData.config.data.datasets[0].data = data;
-    freqChart.update('quiet');
 
     const dataLoader = () => fetch(dumpUri)
         .then(response =>{
@@ -97,6 +92,11 @@ function beginChartDrawing(target,place){
             if(!Array.isArray(dumpData)){
                 return;
             }
+
+            const labels = [];
+            const data = [];
+            window.freqChartData.config.data.labels = labels;
+            window.freqChartData.config.data.datasets[0].data = data;
 
             dumpData.forEach(element => {
                 labels.unshift(new Date(1000 * element.t));
@@ -112,8 +112,8 @@ function beginChartDrawing(target,place){
     
             wsc.onmessage = (event) => {
                 const element = JSON.parse(event.data);
-                labels.push(new Date(1000 * element.t));
-                data.push(element.f);
+                window.freqChartData.config.data.labels.push(new Date(1000 * element.t));
+                window.freqChartData.config.data.datasets[0].data.push(element.f);
                 textModMsg.textContent = element.c + "users.";
                 freqChart.update('quiet');
             };
