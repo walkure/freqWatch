@@ -18,4 +18,4 @@ Arduino でビルドできるはず。
 
 ## 回路図例
 
-![esp32_schematics](https://user-images.githubusercontent.com/1270667/155192913-923ecf8e-ce2f-4f25-bd33-b7053d709d4b.png)
+![esp32_schematics](https://user-images.githubusercontent.com/1270667/155331256-906107e5-818b-4b90-8b88-3d23f6a1c457.png)
