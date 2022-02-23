@@ -38,7 +38,7 @@ class ACFreqWatcher(asyncio.Protocol):
 
         self.__queue.put_nowait({
                 'place':place,
-                'freq': float(freqs[0]) / 10000.
+                'freq': float(freqs[1]) / 10000.
             })
 
     def get_queue(self):
