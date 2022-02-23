@@ -73,6 +73,7 @@ function setupChart(){
     window.freqChartData = {
         "chart": freqChart,
         "config": config,
+        "wsc":null,
     }
 }
 
@@ -82,21 +83,26 @@ function beginChartDrawing(target,place){
 
     const freqChart = window.freqChartData.chart;
 
-    const dataLoader = () => fetch(dumpUri)
-        .then(response => {
+    const dataLoader = () => {
+        if(window.freqChartData.wsc !== null){
+                window.freqChartData.wsc.close();
+                window.freqChartData.wsc = null;
+        }
+        const labels = [];
+        const data = [];
+        window.freqChartData.config.data.labels = labels;
+        window.freqChartData.config.data.datasets[0].data = data;
+
+        fetch(dumpUri).then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not OK');
             }
             return response.json();
         }).then(dumpData => {
+            console.log(dumpUri);
             if(!Array.isArray(dumpData)){
                 return;
             }
-
-            const labels = [];
-            const data = [];
-            window.freqChartData.config.data.labels = labels;
-            window.freqChartData.config.data.datasets[0].data = data;
 
             dumpData.forEach(element => {
                 labels.unshift(new Date(1000 * element.t));
@@ -108,25 +114,34 @@ function beginChartDrawing(target,place){
             const wsUriBase = new URL(target);
             wsUriBase.protocol = wsUriBase.protocol === 'http:' ? 'ws:' : 'wss:';
             const wsUri = wsUriBase + 'ws?place=' +place;
+            console.log(wsUri);
             const wsc = new WebSocket(wsUri);
-    
+
+            wsc.onopen = () => window.freqChartData.wsc = wsc;
+            
             wsc.onmessage = event => {
                 const element = JSON.parse(event.data);
-                window.freqChartData.config.data.labels.push(new Date(1000 * element.t));
-                window.freqChartData.config.data.datasets[0].data.push(element.f);
+                labels.push(new Date(1000 * element.t));
+                data.push(element.f);
                 textModMsg.textContent = element.c + "users.";
                 freqChart.update('quiet');
             };
 
             wsc.onclose = event => {
                 console.log(Date(Date.now()).toString()+"close:"+JSON.stringify(event)+" code:"+event.code+" wasClean:"+event.wasClean+" reason:"+event.reason);
-                // re-load data and connect websocket
-                dataLoader();
+                if(window.freqChartData.wsc !== null){
+                    // re-load data and connect websocket
+                    dataLoader();
+                }
             };
 
         }).catch(reason => {
+            window.freqChartData.config.data.labels = [];
+            window.freqChartData.config.data.datasets[0].data = [];
+            freqChart.update('quiet');
             textModMsg.textContent = reason;
-    });
+        })
+    };
 
     // load data and connect websocket.
     dataLoader();
