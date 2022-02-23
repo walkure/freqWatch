@@ -10,3 +10,9 @@ Atmel AVR(ATTinyとか)で周波数観測をするファーム
 ## build and write
 
 Microchip Studio(Version 7.0.2052)でビルドして適当なライタつないで書き込みました。
+
+## sender.py
+
+Raspberry PiのUARTに繋いで観測データを流し込み、それを随時アップロードするスクリプトです。
+
+`asyncio`で書いたので`apt`で諸々入れる必要がありそう。
