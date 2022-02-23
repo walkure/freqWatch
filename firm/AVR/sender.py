@@ -93,8 +93,8 @@ class ACFreqSender:
             while True:
                 it = await queue.get()
                 # fire and forget
-                asyncio.ensure_future(self.__send_metric_async(session,it['place'],it['freq']))
-                asyncio.ensure_future(self.__send_ambient_async(session,it['freq']))
+                asyncio.create_task(self.__send_metric_async(session,it['place'],it['freq']))
+                asyncio.create_task(self.__send_ambient_async(session,it['freq']))
                 queue.task_done()
 
 async def main():
