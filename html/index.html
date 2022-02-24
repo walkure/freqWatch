@@ -16,14 +16,16 @@
 <div id="ambient">
 You can see more long span data at <a href="https://ambidata.io/bd/board.html?id=37603">Ambient</a>.
 </div>
-
-<div class="chart-container" style="position: relative; height:40vh; width:80vw">    
+<div class="chart-container" style="height:40vh; width:80vw">    
 <canvas id="freqChart"></canvas>
+<button type="button" onclick="resetZoon();"> reset zoom / pan </button>
 </div>
 <!-- import libraries -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js" integrity="sha512-QSkVNOCYLtj73J4hbmVoOV6KVZuMluZlioC+trLpewV8qMjsWqlIQvkn1KGX2StWvPMdWGBqim1xlC8krl1EKQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js" integrity="sha512-qTXRIMyZIFb8iQcfjXWCO8+M5Tbc38Qi5WzdPOYZHIlZpzBHG3L3by84BBBOiRGiEb7KKtAOAs5qYdUiZiQNNQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-adapter-moment/1.0.0/chartjs-adapter-moment.min.js" integrity="sha512-oh5t+CdSBsaVVAvxcZKy3XJdP7ZbYUBSRCXDTVn0ODewMDDNnELsrG9eDm8rVZAQg7RsDD/8K3MjPAFB13o6eA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js" integrity="sha512-UXumZrZNiOwnTcZSHLOfcTs0aos2MzBWHXOHOuB0J/R44QB0dwY5JgfbvljXcklVf65Gc4El6RjZ+lnwd2az2g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/1.2.0/chartjs-plugin-zoom.min.js" integrity="sha512-TT0wAMqqtjXVzpc48sI0G84rBP+oTkBZPgeRYIOVRGUdwJsyS3WPipsNh///ay2LJ+onCM23tipnz6EvEy2/UA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-streaming/2.0.0/chartjs-plugin-streaming.min.js" integrity="sha512-pSxAn0V22F4p92VllULJWP5yR5a5FfSPCzHum2P7MrbzmYNiaYsED0UZUF9JzRSZvRlemas5Yqf7F90xFvFthA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <!-- code -->
 <script>
@@ -63,7 +65,22 @@ function setupChart(){
                     labels: {
                         usePointStyle: true,
                     }
-                }
+                },
+                zoom: {
+                    pan: {
+                        enabled: true,
+                        mode: "x"
+                    },
+                    zoom: {
+                            wheel: {
+                            enabled: true,
+                        },
+                    pinch: {
+                        enabled: true
+                        },
+                    mode: "x",
+                    }
+                },
             },
         }
     };
@@ -156,6 +173,9 @@ function initialize(){
     const areaSelector = document.getElementById( "area-selector" );
     const selectedArea = areaSelector.options[areaSelector.selectedIndex].value;
     areaUpdate(selectedArea);
+}
+function resetZoon(){
+    window.freqChartData?.chart?.resetZoom();
 }
 </script>
 <script>
