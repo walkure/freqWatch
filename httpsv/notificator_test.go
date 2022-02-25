@@ -37,6 +37,9 @@ func Test_notificator_handlerData(t *testing.T) {
 	wsc2 := connectWSClient(t, hsv, "/?place=testplace")
 	defer wsc2.Close()
 
+	epochWants = int64(3)
+	freqWants = 514.810
+
 	h.Notify("testplace", &databin.FreqDatum{Epoch: epochWants, Freq: freqWants})
 	data = recvWSNotifyData(t, wsc2)
 	clientsWants = 2
