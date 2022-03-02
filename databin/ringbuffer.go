@@ -16,11 +16,24 @@ func NewDataRingBuffer(length int) *DataRingBuffer {
 		panic("invalid length! OTL")
 	}
 	drb := &DataRingBuffer{}
-	drb.data = make([]*FreqDatum, length)
-	drb.head = -1 * length
-	drb.tail = -1
+	drb.Init(length)
 
 	return drb
+}
+
+func (f *DataRingBuffer) Init(length int) {
+	if length < 0 {
+		if f.data == nil {
+			panic("RingBuffer broken")
+		}
+		length = len(f.data)
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	f.data = make([]*FreqDatum, length)
+	f.head = -1 * length
+	f.tail = -1
 }
 
 func (f *DataRingBuffer) PushBack(d *FreqDatum) {

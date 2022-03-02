@@ -47,6 +47,13 @@ func Test_DataRingBufferSeq(t *testing.T) {
 
 		})
 	}
+
+	drb.Init(-1)
+
+	drb.PeekAll(func(d *FreqDatum) bool {
+		t.Errorf("unexpected callback(nil buffer)")
+		return false
+	})
 }
 
 func Test_DataRingBufferRandom(t *testing.T) {
