@@ -8,10 +8,17 @@
 
 <div id="current-users">---</div>
 <label for="area-selector">Area</label>
-<select id="area-selector" onchange="areaUpdate(this.value);">
+<select id="area-selector" onchange="areaSelectUpdate(this.value);">
 <option value="kyoto" selected>Kyoto(60Hz)</option >
 <option value="tokyo">Tokyo(50Hz)</option>
 </select>
+
+<!--
+<div id="area-chooser">
+    <label><input type="checkbox" value="kyoto" onchange="areaChoose(this)">Kyoto(60Hz)</label>
+    <label><input type="checkbox" value="tokyo" onchange="areaChoose(this)">Tokyo(50Hz)</label>
+</div>
+-->
 
 <div id="ambient">
 You can see more long span data at <a href="https://ambidata.io/bd/board.html?id=37603">Ambient</a>.
@@ -34,15 +41,23 @@ function setupChart(){
     const config = {
         type: 'line',
         data: {
-            labels: [],
+            labels: [], // not in use
             datasets: [{
-                label: 'Freq(Hz)',
+                label: 'Kyoto',
                 data: [],
+                borderColor: "rgb(0, 191, 255)",
+                hidden: true,
+                place_id: 'kyoto',
+            },{
+                label: 'Tokyo',
+                data: [],
+                borderColor:'rgb(0, 204, 102)',
+                hidden: true,
+                place_id: 'tokyo',
             }]
         },
         options :{
             pointRadius: 1,
-            borderColor: "rgb(0, 191, 255)",
             scales: {
                 x: {
                     type: 'realtime',
@@ -56,15 +71,14 @@ function setupChart(){
             plugins: {
                 tooltip: {
                     callbacks: {
-                        label: function(ctx) {
-                            return  ctx.raw + "Hz";
-                        }
+                        label: (ctx) => ctx.dataset.label+ ": " + ctx.raw.y + "Hz",
                     },
                 },
                 legend: {
                     labels: {
                         usePointStyle: true,
-                    }
+                    },
+                    onClick: () => false
                 },
                 zoom: {
                     pan: {
@@ -90,7 +104,7 @@ function setupChart(){
     window.freqChartData = {
         "chart": freqChart,
         "config": config,
-        "wsc":null,
+        "wsc":[null,null,null]
     }
 }
 
@@ -99,16 +113,24 @@ function beginChartDrawing(target,place){
     const textModMsg = document.getElementById('current-users');
 
     const freqChart = window.freqChartData.chart;
+    const chartConfig = window.freqChartData.config;
 
-    const dataLoader = () => {
-        if(window.freqChartData.wsc !== null){
-                window.freqChartData.wsc.close();
-                window.freqChartData.wsc = null;
+    const dataLoader = (place) => {
+        const placeIndex = chartConfig.data.datasets.findIndex( it => it. place_id === place);
+        if (placeIndex < 0){
+            console.log("cannot find starting place:"+place);
+            return;
         }
-        const labels = [];
+        if(!chartConfig.data.datasets[placeIndex].hidden){
+            console.log("already shown place:"+place);
+            return;
+        }
+        if(window.freqChartData.wsc[placeIndex] !== null){
+                window.freqChartData.wsc[placeIndex].close();
+                window.freqChartData.wsc[placeIndex] = null;
+        }
         const data = [];
-        window.freqChartData.config.data.labels = labels;
-        window.freqChartData.config.data.datasets[0].data = data;
+        chartConfig.data.datasets[placeIndex].data = data;
 
         fetch(dumpUri).then(response => {
             if (!response.ok) {
@@ -122,57 +144,85 @@ function beginChartDrawing(target,place){
             }
 
             dumpData.forEach(element => {
-                labels.unshift(new Date(1000 * element.t));
-                data.unshift(element.f);
+                data.unshift({x:new Date(1000 * element.t),y:element.f});
             });
 
+            chartConfig.data.datasets[placeIndex].hidden = false;
             freqChart.update('quiet');
         }).then(() => {
             const wsUriBase = new URL(target);
             wsUriBase.protocol = wsUriBase.protocol === 'http:' ? 'ws:' : 'wss:';
             const wsUri = wsUriBase + 'ws?place=' +place;
-            console.log(wsUri);
             const wsc = new WebSocket(wsUri);
 
-            wsc.onopen = () => window.freqChartData.wsc = wsc;
+            wsc.onopen = () => window.freqChartData.wsc[placeIndex] = wsc;
             
             wsc.onmessage = event => {
                 const element = JSON.parse(event.data);
-                labels.push(new Date(1000 * element.t));
-                data.push(element.f);
+                data.push({x:new Date(1000 * element.t),y:element.f});
                 textModMsg.textContent = element.c + "users.";
                 freqChart.update('quiet');
             };
 
             wsc.onclose = event => {
-                console.log(Date(Date.now()).toString()+"close:"+JSON.stringify(event)+" code:"+event.code+" wasClean:"+event.wasClean+" reason:"+event.reason);
-                if(window.freqChartData.wsc !== null){
+                if(window.freqChartData.wsc[placeIndex] !== null){
                     // re-load data and connect websocket
-                    dataLoader();
+                    dataLoader(place);
                 }
             };
 
         }).catch(reason => {
-            window.freqChartData.config.data.labels = [];
-            window.freqChartData.config.data.datasets[0].data = [];
+            console.log("Fetch error place_index:"+placeIndex+" place:"+place);
+            chartConfig.data.datasets[placeIndex].data = [];
+            chartConfig.data.datasets[placeIndex].hidden = true;
             freqChart.update('quiet');
             textModMsg.textContent = reason;
         })
     };
 
     // load data and connect websocket.
-    dataLoader();
+    dataLoader(place);
 }
-function areaUpdate(place){
-    const targetHost = 'https://www2.zxvf.jp/freqWatch/d/';
-//    const targetHost = 'http://localhost:8080/';
+
+function endChartDrawing(place){
+    const placeIndex = window.freqChartData.config.data.datasets.findIndex( it => it. place_id === place);
+    if (placeIndex < 0){
+        console.log("cannot find closing place:"+place);
+        return;
+    }
+
+    const closingWs = window.freqChartData.wsc[placeIndex];
+    window.freqChartData.wsc[placeIndex] = null;
+    if(closingWs !== null){
+        closingWs.close();
+    }
+
+    window.freqChartData.config.data.datasets[placeIndex].data = [];
+    window.freqChartData.config.data.datasets[placeIndex].hidden = true;
+    window.freqChartData.chart.update('quiet');
+}
+const targetHost = 'https://www2.zxvf.jp/freqWatch/d/';
+//const targetHost = 'http://localhost:8080/';
+
+function areaChoose(obj){
+    if(obj.checked){
+        beginChartDrawing(targetHost,obj.value);
+    }else{
+        endChartDrawing(obj.value);
+    }
+}
+
+function areaSelectUpdate(place){
+    const areaSelector = document.getElementById( "area-selector" );
+    if(place === null){
+        place = areaSelector.options[areaSelector.selectedIndex].value;
+    }
+    Array.prototype.forEach.call(areaSelector.options,(it) => endChartDrawing(it.value));
     beginChartDrawing(targetHost,place);
 }
 function initialize(){
     setupChart();
-    const areaSelector = document.getElementById( "area-selector" );
-    const selectedArea = areaSelector.options[areaSelector.selectedIndex].value;
-    areaUpdate(selectedArea);
+    areaSelectUpdate(null);
 }
 function resetZoon(){
     window.freqChartData?.chart?.resetZoom();
