@@ -102,3 +102,27 @@ power_freq{place="test1"} 60.012000 2000
 		t.Errorf("want %s or %s, but %s", expected1, expected2, got)
 	}
 }
+
+func Test_openmetrics_handlerAverage(t *testing.T) {
+	h := NewOpenMetricsHandler(databin.NewDataBin(10))
+
+	req := httptest.NewRequest("GET", "/metrics?mode=average", nil)
+	res := httptest.NewRecorder()
+
+	h.Update("test1", &databin.FreqDatum{Freq: 60.0120, Epoch: 2})
+	h.Update("test1", &databin.FreqDatum{Freq: 50.0120, Epoch: 4})
+	h.ServeHTTP(res, req)
+
+	if res.Code != http.StatusOK {
+		t.Errorf("unexpected status code:%d\n", res.Code)
+	}
+
+	expected := `# HELP power_freq The frequency of power line.
+# TYPE power_freq gauge
+power_freq{place="test1"} 55.0120
+`
+	got := res.Body.String()
+	if got != expected {
+		t.Errorf("want [%s] , but [%s]", expected, got)
+	}
+}
