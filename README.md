@@ -15,6 +15,8 @@
 - RECV_PATH: ESP32等から周波数情報をを受けるパス (default=`/frecv`)
 - SHARE_KEY: ESP32等から周波数情報を受けるときの共通キー (必須)
 - METRICS_PATH: OpenMetrics Exporterのパス (default=`/metrics`)
+- DUMP_BUFFER: 初回表示時に送るデータポイント数(default=60*10)
+- METRIC_BUFFER: OpenMetrics Exporterで処理するデータポイント数(default=30)
 
 ### nginx
 
@@ -77,3 +79,26 @@ RestartSec=30s
 [Install]
 WantedBy=multi-user.target
 ```
+
+### Prometheus a.k.a OpenMetrics
+
+`http://localhost:8080/metrics` で OpenMetrics Exporterが動いています。
+中長期のデータはPrometheusのようなもので取っておくほうが楽です。
+
+実際にスクレイピングさせると`Error on ingesting out-of-order samples` というwarnログがもりもり流れるので、
+取得済みデータを再度取得しないようにクエリパラメタ`flush`をつけてください。Prometheusの場合は以下の設定を`promethues.yml`の`scrape_configs`内`job`に追加します。
+
+```yaml
+    params:
+      flush: [true]
+```
+
+1秒単位のデータは情報量が多すぎるのでまとめる、というときはクエリパラメタ`mode=average`をつけると平均値を返すようになります(こちらには`flush`はありません)。
+
+```yaml
+    params:
+      mode: ['average']
+```
+
+このとき、平均は`METRIC_BUFFER`に保存されているデータで取るので、スクレイピング間隔などに合わせて適宜調整すると良いでしょう。
+
