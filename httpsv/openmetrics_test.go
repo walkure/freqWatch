@@ -9,7 +9,7 @@ import (
 )
 
 func Test_openmetrics_handlerNil(t *testing.T) {
-	h := NewOpenMetricsHandler()
+	h := NewOpenMetricsHandler(databin.NewDataBin(10))
 
 	req := httptest.NewRequest("GET", "/metrics", nil)
 	res := httptest.NewRecorder()
@@ -27,7 +27,7 @@ func Test_openmetrics_handlerNil(t *testing.T) {
 }
 
 func Test_openmetrics_handlerSingle(t *testing.T) {
-	h := NewOpenMetricsHandler()
+	h := NewOpenMetricsHandler(databin.NewDataBin(10))
 
 	req := httptest.NewRequest("GET", "/metrics", nil)
 	res := httptest.NewRecorder()
@@ -49,7 +49,7 @@ power_freq{place="test1"} 60.012000 1000
 }
 
 func Test_openmetrics_handlerUpdate(t *testing.T) {
-	h := NewOpenMetricsHandler()
+	h := NewOpenMetricsHandler(databin.NewDataBin(10))
 
 	req := httptest.NewRequest("GET", "/metrics", nil)
 	res := httptest.NewRecorder()
@@ -65,6 +65,7 @@ func Test_openmetrics_handlerUpdate(t *testing.T) {
 	expected := `# HELP power_freq The frequency of power line.
 # TYPE power_freq gauge
 power_freq{place="test1"} 50.012000 4000
+power_freq{place="test1"} 60.012000 1000
 `
 	if got := res.Body.String(); got != expected {
 		t.Errorf("want %s, but %s", expected, got)
@@ -72,7 +73,7 @@ power_freq{place="test1"} 50.012000 4000
 }
 
 func Test_openmetrics_handlerMultiple(t *testing.T) {
-	h := NewOpenMetricsHandler()
+	h := NewOpenMetricsHandler(databin.NewDataBin(10))
 
 	req := httptest.NewRequest("GET", "/metrics", nil)
 	res := httptest.NewRecorder()

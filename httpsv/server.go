@@ -22,7 +22,9 @@ func StartHttpServer() {
 	notifier := NewNotificationHandler(dumpBuffer)
 	dumper := NewDumperHandler(dumpBuffer)
 
-	openmetrics := NewOpenMetricsHandler()
+	// 30(seconds)
+	metricBuffer := initDumper(30, "METRIC_BUFFER")
+	openmetrics := NewOpenMetricsHandler(metricBuffer)
 
 	receiver := &receiverHandler{
 		Callback: func(place string, datum *databin.FreqDatum) {
@@ -30,7 +32,7 @@ func StartHttpServer() {
 			notifier.Notify(place, datum)
 			openmetrics.Update(place, datum)
 
-			//log.Printf("place:%s freq:%f\n", place, freq)
+			log.Printf("place:%s freq:%f ts:%+v\n", place, datum.Freq, datum.Epoch)
 		},
 		ShareKey: shareKey,
 	}
