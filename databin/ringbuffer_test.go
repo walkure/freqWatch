@@ -10,7 +10,7 @@ import (
 func Test_DataRingBufferSeq(t *testing.T) {
 	drb := NewDataRingBuffer(4)
 
-	drb.PeekAll(func(d *FreqDatum) bool {
+	drb.PeekAll(false, func(d *FreqDatum) bool {
 		t.Errorf("unexpected callback(nil buffer)")
 		return false
 	})
@@ -37,7 +37,7 @@ func Test_DataRingBufferSeq(t *testing.T) {
 		t.Run(wants, func(t *testing.T) {
 			sb := strings.Builder{}
 			drb.PushBack(&FreqDatum{Epoch: int64(idx)})
-			drb.PeekAll(func(d *FreqDatum) bool {
+			drb.PeekAll(false, func(d *FreqDatum) bool {
 				sb.WriteString(fmt.Sprintf("%x", d.Epoch))
 				return false
 			})
@@ -50,10 +50,47 @@ func Test_DataRingBufferSeq(t *testing.T) {
 
 	drb.Init(-1)
 
-	drb.PeekAll(func(d *FreqDatum) bool {
+	drb.PeekAll(false, func(d *FreqDatum) bool {
 		t.Errorf("unexpected callback(nil buffer)")
 		return false
 	})
+}
+
+func Test_DataRingBufferSeqRev(t *testing.T) {
+	drb := NewDataRingBuffer(4)
+
+	tests := []string{
+		"0",
+		"01",
+		"012",
+		"0123",
+		"1234",
+		"2345",
+		"3456",
+		"4567",
+		"5678",
+		"6789",
+		"789a",
+		"89ab",
+		"9abc",
+		"abcd",
+		"bcde",
+		"cdef",
+	}
+	for idx, wants := range tests {
+		t.Run(wants, func(t *testing.T) {
+			sb := strings.Builder{}
+			drb.PushBack(&FreqDatum{Epoch: int64(idx)})
+			drb.PeekAll(true, func(d *FreqDatum) bool {
+				sb.WriteString(fmt.Sprintf("%x", d.Epoch))
+				return false
+			})
+			if sb.String() != wants {
+				t.Errorf("expected[%s] got[%s]\n", wants, sb.String())
+			}
+
+		})
+	}
 }
 
 func Test_DataRingBufferRandom(t *testing.T) {
@@ -68,7 +105,7 @@ func Test_DataRingBufferRandom(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			drb.PeekAll(func(d *FreqDatum) bool {
+			drb.PeekAll(false, func(d *FreqDatum) bool {
 				return false
 			})
 		}()
@@ -96,7 +133,7 @@ func Test_DataRingBufferD(t *testing.T) {
 			defer wg.Done()
 			prev := int64(-1)
 			item := 0
-			drb.PeekAll(func(d *FreqDatum) bool {
+			drb.PeekAll(false, func(d *FreqDatum) bool {
 				if prev > 0 && prev <= d.Epoch {
 					t.Errorf("data collapsed prev:%d now:%d\n", prev, d.Epoch)
 				}

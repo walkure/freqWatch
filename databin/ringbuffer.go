@@ -1,6 +1,7 @@
 package databin
 
 import (
+	"sort"
 	"sync"
 )
 
@@ -52,17 +53,16 @@ func (f *DataRingBuffer) PushBack(d *FreqDatum) {
 	f.data[f.tail] = d
 }
 
-func (f *DataRingBuffer) PeekAll(peeker func(d *FreqDatum) bool) bool {
+func (f *DataRingBuffer) PeekAll(startFromOlder bool, peeker func(d *FreqDatum) bool) bool {
 	if f.tail < 0 {
 		return false
 	}
 
-	cbArgs := make([]*FreqDatum, len(f.data))
+	cbArgs := make([]*FreqDatum, 0, len(f.data))
 
 	func() {
 		f.mu.RLock()
 		defer f.mu.RUnlock()
-		index := 0
 
 		head := f.head
 		if head < 0 {
@@ -73,14 +73,19 @@ func (f *DataRingBuffer) PeekAll(peeker func(d *FreqDatum) bool) bool {
 			if i < 0 {
 				i = len(f.data) - 1
 			}
-			cbArgs[index] = f.data[i]
-			index++
+			cbArgs = append(cbArgs, f.data[i])
 
 			if i == head {
 				break
 			}
 		}
 	}()
+
+	if startFromOlder {
+		sort.Slice(cbArgs, func(i, j int) bool {
+			return cbArgs[i].Epoch < cbArgs[j].Epoch
+		})
+	}
 
 	for _, cbArg := range cbArgs {
 		if cbArg == nil {
@@ -95,8 +100,4 @@ func (f *DataRingBuffer) PeekAll(peeker func(d *FreqDatum) bool) bool {
 
 func (f *DataRingBuffer) Length() int {
 	return len(f.data)
-}
-
-func (f *DataRingBuffer) Flush() {
-	f.Init(len(f.data))
 }

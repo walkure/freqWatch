@@ -30,6 +30,8 @@ func (h *openmetriucsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	flush := r.URL.Query().Has("flush")
+
 	fmt.Fprintln(w, "# HELP power_freq The frequency of power line.\n# TYPE power_freq gauge")
 	for _, place := range places {
 		drb := h.db.LookupRingBuffer(place)
@@ -37,10 +39,13 @@ func (h *openmetriucsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 			continue
 		}
 
-		drb.PeekAll(func(it *databin.FreqDatum) bool {
+		drb.PeekAll(true, func(it *databin.FreqDatum) bool {
 			fmt.Fprintf(w, "power_freq{place=\"%s\"} %f %d\n", place, it.Freq, it.Epoch*1000)
 			return false
 		})
+		if flush {
+			drb.Init(-1)
+		}
 	}
 }
 
