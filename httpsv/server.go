@@ -32,7 +32,7 @@ func StartHttpServer() {
 			notifier.Notify(place, datum)
 			openmetrics.Update(place, datum)
 
-			log.Printf("place:%s freq:%f ts:%+v\n", place, datum.Freq, datum.Epoch)
+			//log.Printf("place:%s freq:%f ts:%+v\n", place, datum.Freq, datum.Epoch)
 		},
 		ShareKey: shareKey,
 	}
