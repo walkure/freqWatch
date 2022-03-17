@@ -20,4 +20,22 @@ func Test_DataBin(t *testing.T) {
 	if drb1 != drb3 {
 		t.Errorf("map collapsed")
 	}
+
+	testDb.GetRingBuffer("poyo")
+
+	foundPoyo := false
+	foundHoge := false
+	keys := testDb.ListRingBuffer()
+	for _, k := range keys {
+		if k == "hoge" {
+			foundHoge = true
+		}
+		if k == "poyo" {
+			foundPoyo = true
+		}
+	}
+	if !foundPoyo || !foundHoge {
+		t.Errorf("keys invalid. %+v", keys)
+	}
+
 }

@@ -31,3 +31,17 @@ func (db *DataBin) LookupRingBuffer(place string) *DataRingBuffer {
 	defer db.dbMux.RUnlock()
 	return db.alldata[place]
 }
+
+func (db *DataBin) ListRingBuffer() []string {
+	db.dbMux.RLock()
+	defer db.dbMux.RUnlock()
+
+	keys := make([]string, len(db.alldata))
+	i := 0
+	for k := range db.alldata {
+		keys[i] = k
+		i++
+	}
+
+	return keys
+}
