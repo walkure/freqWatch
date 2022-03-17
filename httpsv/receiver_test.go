@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/walkure/freq_recv/databin"
 )
 
 func Test_recv_handler(t *testing.T) {
@@ -54,9 +56,9 @@ func Test_recv_handler(t *testing.T) {
 			req := httptest.NewRequest(tt.args.method, tt.args.target, bytes.NewBufferString(tt.args.body))
 			res := httptest.NewRecorder()
 			receiver := &receiverHandler{
-				Callback: func(place string, freq float64) {
-					if freq != tt.resp.value {
-						t.Errorf("want %f, but %f", tt.resp.value, freq)
+				Callback: func(place string, datum *databin.FreqDatum) {
+					if datum.Freq != tt.resp.value {
+						t.Errorf("want %f, but %f", tt.resp.value, datum.Freq)
 					}
 					if place != tt.resp.place {
 						t.Errorf("want %s, but %s", tt.resp.place, place)

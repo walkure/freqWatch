@@ -10,15 +10,15 @@ import (
 )
 
 type dumperHandler struct {
-	BufferGetter func(place string) *databin.DataRingBuffer
-	mu           sync.RWMutex
-	jsonCache    map[string]string
+	db        *databin.DataBin
+	mu        sync.RWMutex
+	jsonCache map[string]string
 }
 
 func NewDumperHandler(db *databin.DataBin) *dumperHandler {
 	return &dumperHandler{
-		jsonCache:    make(map[string]string),
-		BufferGetter: db.LookupRingBuffer,
+		jsonCache: make(map[string]string),
+		db:        db,
 	}
 }
 
@@ -41,7 +41,7 @@ func (h *dumperHandler) generateJSON(place string) string {
 		return jsonBody
 	}
 
-	dbr := h.BufferGetter(place)
+	dbr := h.db.LookupRingBuffer(place)
 	if dbr == nil {
 		return ""
 	}
@@ -76,4 +76,10 @@ func (h *dumperHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Length", fmt.Sprint(len(js)))
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	fmt.Fprint(w, js)
+}
+
+func (h *dumperHandler) Update(place string, datum *databin.FreqDatum) {
+	dbr := h.db.GetRingBuffer(place)
+	dbr.PushBack(datum)
+	h.InvalidateJsonCache(place)
 }

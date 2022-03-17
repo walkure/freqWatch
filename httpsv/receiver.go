@@ -6,9 +6,12 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
+
+	"github.com/walkure/freq_recv/databin"
 )
 
-type ReceiveCallback func(place string, value float64)
+type ReceiveCallback func(place string, datum *databin.FreqDatum)
 
 type receiverHandler struct {
 	Callback ReceiveCallback
@@ -54,7 +57,12 @@ func (h *receiverHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, "OK")
 
+	datum := &databin.FreqDatum{
+		Epoch: time.Now().Unix(),
+		Freq:  freq,
+	}
+
 	if h.Callback != nil {
-		h.Callback(place, freq)
+		h.Callback(place, datum)
 	}
 }

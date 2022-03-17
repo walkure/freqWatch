@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"time"
 
 	"github.com/walkure/freq_recv/databin"
 )
@@ -26,14 +25,8 @@ func StartHttpServer() {
 	openmetrics := NewOpenMetricsHandler()
 
 	receiver := &receiverHandler{
-		Callback: func(place string, freq float64) {
-			datum := &databin.FreqDatum{
-				Epoch: time.Now().Unix(),
-				Freq:  freq,
-			}
-			dbr := dumpBuffer.GetRingBuffer(place)
-			dbr.PushBack(datum)
-			dumper.InvalidateJsonCache(place)
+		Callback: func(place string, datum *databin.FreqDatum) {
+			dumper.Update(place, datum)
 			notifier.Notify(place, datum)
 			openmetrics.Update(place, datum)
 

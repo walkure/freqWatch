@@ -11,10 +11,10 @@ import (
 )
 
 type notificatorHandler struct {
-	mu      sync.RWMutex
-	clients map[*websocket.Conn]chan *databin.FreqDatum
-	places  map[chan *databin.FreqDatum]string
-	db      *databin.DataBin
+	mu           sync.RWMutex
+	clients      map[*websocket.Conn]chan *databin.FreqDatum
+	places       map[chan *databin.FreqDatum]string
+	bufferGetter func(place string) *databin.DataRingBuffer
 }
 
 var upgrader = websocket.Upgrader{
@@ -36,16 +36,16 @@ const (
 
 func NewNotificationHandler(db *databin.DataBin) *notificatorHandler {
 	return &notificatorHandler{
-		clients: make(map[*websocket.Conn]chan *databin.FreqDatum),
-		places:  make(map[chan *databin.FreqDatum]string),
-		db:      db,
+		clients:      make(map[*websocket.Conn]chan *databin.FreqDatum),
+		places:       make(map[chan *databin.FreqDatum]string),
+		bufferGetter: db.LookupRingBuffer,
 	}
 }
 
 func (h *notificatorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	place := r.FormValue("place")
 
-	if h.db.LookupRingBuffer(place) == nil {
+	if h.bufferGetter(place) == nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
