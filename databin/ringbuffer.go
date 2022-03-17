@@ -92,3 +92,11 @@ func (f *DataRingBuffer) PeekAll(peeker func(d *FreqDatum) bool) bool {
 	}
 	return false
 }
+
+func (f *DataRingBuffer) Length() int {
+	return len(f.data)
+}
+
+func (f *DataRingBuffer) Flush() {
+	f.Init(len(f.data))
+}

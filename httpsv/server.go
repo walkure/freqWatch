@@ -12,14 +12,16 @@ import (
 )
 
 func StartHttpServer() {
-
-	notifier := NewNotificationHandler()
-	dumper := NewDumperHandler()
-
 	shareKey := os.Getenv("SHARE_KEY")
 	if shareKey == "" {
 		log.Fatal("SHARE_KEY is mandatory envrions.")
 	}
+
+	// 60(seconds) * 10(minutes)
+	dumpBuffer := initDumper(60*10, "DUMP_BUFFER")
+
+	notifier := NewNotificationHandler(dumpBuffer)
+	dumper := NewDumperHandler(dumpBuffer)
 
 	openmetrics := NewOpenMetricsHandler()
 
@@ -29,11 +31,13 @@ func StartHttpServer() {
 				Epoch: time.Now().Unix(),
 				Freq:  freq,
 			}
-			dbr := databin.GetRingBuffer(place)
+			dbr := dumpBuffer.GetRingBuffer(place)
 			dbr.PushBack(datum)
 			dumper.InvalidateJsonCache(place)
 			notifier.Notify(place, datum)
 			openmetrics.Update(place, datum)
+
+			//log.Printf("place:%s freq:%f\n", place, freq)
 		},
 		ShareKey: shareKey,
 	}
@@ -60,6 +64,21 @@ func StartHttpServer() {
 	listener := getListener("", 8080)
 	log.Printf("Start listening at %s\n", listener)
 	http.ListenAndServe(listener, nil)
+}
+
+func initDumper(defaultSize int, keyName string) *databin.DataBin {
+	size := defaultSize
+	sizeVal := os.Getenv(keyName)
+	if sizeVal != "" {
+		parsedSize, err := strconv.Atoi(sizeVal)
+		if err == nil {
+			size = parsedSize
+		}
+	}
+
+	log.Printf("DataBin(%s) size:%d\n", keyName, size)
+
+	return databin.NewDataBin(size)
 }
 
 func getListener(defaultListener string, defaultPort uint16) string {

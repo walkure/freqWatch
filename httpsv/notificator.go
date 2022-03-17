@@ -14,6 +14,7 @@ type notificatorHandler struct {
 	mu      sync.RWMutex
 	clients map[*websocket.Conn]chan *databin.FreqDatum
 	places  map[chan *databin.FreqDatum]string
+	db      *databin.DataBin
 }
 
 var upgrader = websocket.Upgrader{
@@ -33,17 +34,18 @@ const (
 	pingPeriod = (pongWait * 9) / 10
 )
 
-func NewNotificationHandler() *notificatorHandler {
+func NewNotificationHandler(db *databin.DataBin) *notificatorHandler {
 	return &notificatorHandler{
 		clients: make(map[*websocket.Conn]chan *databin.FreqDatum),
 		places:  make(map[chan *databin.FreqDatum]string),
+		db:      db,
 	}
 }
 
 func (h *notificatorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	place := r.FormValue("place")
 
-	if databin.LookupRingBuffer(place) == nil {
+	if h.db.LookupRingBuffer(place) == nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}

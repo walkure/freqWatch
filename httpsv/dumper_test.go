@@ -7,7 +7,8 @@ import (
 )
 
 func Test_DumperSimple(t *testing.T) {
-	dumper := NewDumperHandler()
+	db := databin.NewDataBin(10)
+	dumper := NewDumperHandler(db)
 
 	got := dumper.generateJSON("testPlace")
 	if got != "" {
@@ -15,7 +16,7 @@ func Test_DumperSimple(t *testing.T) {
 	}
 
 	// set test data
-	dbr := databin.GetRingBuffer("testPlace")
+	dbr := db.GetRingBuffer("testPlace")
 	dbr.PushBack(&databin.FreqDatum{Epoch: 1, Freq: 0.1})
 	dbr.PushBack(&databin.FreqDatum{Epoch: 2, Freq: 0.2})
 	dbr.PushBack(&databin.FreqDatum{Epoch: 3, Freq: 0.3})

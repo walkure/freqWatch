@@ -1,6 +1,7 @@
 package httpsv
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -52,6 +53,63 @@ func Test_getListener(t *testing.T) {
 			}
 			if got := getListener(tt.args.defaultListener, tt.args.defaultPort); got != tt.want {
 				t.Errorf("getListener() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_initDumper(t *testing.T) {
+	type args struct {
+		defaultSize int
+		envSize     int
+		keyName     string
+		envName     string
+	}
+	tests := []struct {
+		name     string
+		args     args
+		wantSize int
+	}{
+		{
+			"default",
+			args{
+				defaultSize: 13,
+				envSize:     0,
+				keyName:     "DUMPER_SIZE",
+				envName:     "",
+			},
+			13,
+		},
+		{
+			"env changed",
+			args{
+				defaultSize: 13,
+				envSize:     213,
+				keyName:     "DUMPER_SIZE",
+				envName:     "DUMPER_SIZE",
+			},
+			213,
+		},
+		{
+			"env not match",
+			args{
+				defaultSize: 13,
+				envSize:     213,
+				keyName:     "HOGE_SIZE",
+				envName:     "DUMPER_SIZE",
+			},
+			13,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.args.envName != "" {
+				t.Setenv(tt.args.envName, fmt.Sprint(tt.args.envSize))
+			}
+			dumper := initDumper(tt.args.defaultSize, tt.args.keyName)
+			rb := dumper.GetRingBuffer("test")
+			if rb.Length() != tt.wantSize {
+				t.Errorf("initDumper(%d,%s) = %d, want %d", tt.args.defaultSize, tt.args.keyName, rb.Length(), tt.wantSize)
 			}
 		})
 	}

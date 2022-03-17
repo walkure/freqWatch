@@ -13,9 +13,10 @@ import (
 func Test_notificator_handlerData(t *testing.T) {
 
 	// set dummy data to handle websocket URI
-	databin.GetRingBuffer("testplace").PushBack(&databin.FreqDatum{Epoch: 1, Freq: 1})
+	db := databin.NewDataBin(10)
+	db.GetRingBuffer("testplace").PushBack(&databin.FreqDatum{Epoch: 1, Freq: 1})
 
-	h := NewNotificationHandler()
+	h := NewNotificationHandler(db)
 
 	hsv := httptest.NewServer(h)
 	defer hsv.Close()
@@ -52,9 +53,10 @@ func Test_notificator_handlerData(t *testing.T) {
 func Test_notificator_handlerJsonPing(t *testing.T) {
 
 	// set dummy data to handle websocket URI
-	databin.GetRingBuffer("testplace").PushBack(&databin.FreqDatum{Epoch: 1, Freq: 1})
+	db := databin.NewDataBin(10)
+	db.GetRingBuffer("testplace").PushBack(&databin.FreqDatum{Epoch: 1, Freq: 1})
 
-	h := NewNotificationHandler()
+	h := NewNotificationHandler(db)
 
 	hsv := httptest.NewServer(h)
 	defer hsv.Close()

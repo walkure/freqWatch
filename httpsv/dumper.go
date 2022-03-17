@@ -15,10 +15,10 @@ type dumperHandler struct {
 	jsonCache    map[string]string
 }
 
-func NewDumperHandler() *dumperHandler {
+func NewDumperHandler(db *databin.DataBin) *dumperHandler {
 	return &dumperHandler{
 		jsonCache:    make(map[string]string),
-		BufferGetter: databin.LookupRingBuffer,
+		BufferGetter: db.LookupRingBuffer,
 	}
 }
 

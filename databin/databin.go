@@ -2,30 +2,32 @@ package databin
 
 import "sync"
 
-var alldata map[string]*DataRingBuffer
-
-func init() {
-	alldata = make(map[string]*DataRingBuffer)
+type DataBin struct {
+	alldata map[string]*DataRingBuffer
+	dbMux   sync.RWMutex
+	size    int
 }
 
-var dbMux sync.RWMutex
+func NewDataBin(length int) *DataBin {
+	return &DataBin{
+		alldata: make(map[string]*DataRingBuffer),
+		size:    length,
+	}
+}
 
-// 60(secs) * 10(mins)
-const bufferLength = 60 * 10
-
-func GetRingBuffer(place string) *DataRingBuffer {
-	dbMux.Lock()
-	defer dbMux.Unlock()
-	drb, ok := alldata[place]
+func (db *DataBin) GetRingBuffer(place string) *DataRingBuffer {
+	db.dbMux.Lock()
+	defer db.dbMux.Unlock()
+	drb, ok := db.alldata[place]
 	if !ok {
-		drb = NewDataRingBuffer(bufferLength)
-		alldata[place] = drb
+		drb = NewDataRingBuffer(db.size)
+		db.alldata[place] = drb
 	}
 	return drb
 }
 
-func LookupRingBuffer(place string) *DataRingBuffer {
-	dbMux.RLock()
-	defer dbMux.RUnlock()
-	return alldata[place]
+func (db *DataBin) LookupRingBuffer(place string) *DataRingBuffer {
+	db.dbMux.RLock()
+	defer db.dbMux.RUnlock()
+	return db.alldata[place]
 }
