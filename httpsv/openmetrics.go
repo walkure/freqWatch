@@ -52,7 +52,7 @@ func (h *openmetriucsHandler) sendAverageMetrics(w http.ResponseWriter) {
 		}
 		sum := float64(0)
 		count := 0
-		drb.PeekAll(true, func(it *databin.FreqDatum) bool {
+		drb.PeekFromNewer(func(it *databin.FreqDatum) bool {
 			sum += it.Freq
 			count++
 			return false
@@ -71,7 +71,7 @@ func (h *openmetriucsHandler) sendAllMetrics(w http.ResponseWriter, flush bool) 
 			continue
 		}
 
-		drb.PeekAll(true, func(it *databin.FreqDatum) bool {
+		drb.PeekFromOlder(func(it *databin.FreqDatum) bool {
 			fmt.Fprintf(w, "power_freq{place=\"%s\"} %f %d\n", place, it.Freq, it.Epoch*1000)
 			return false
 		})

@@ -53,7 +53,15 @@ func (f *DataRingBuffer) PushBack(d *FreqDatum) {
 	f.data[f.tail] = d
 }
 
-func (f *DataRingBuffer) PeekAll(startFromOlder bool, peeker func(d *FreqDatum) bool) bool {
+func (f *DataRingBuffer) PeekFromOlder(peeker func(d *FreqDatum) bool) bool {
+	return f.peekAll(true, peeker)
+}
+
+func (f *DataRingBuffer) PeekFromNewer(peeker func(d *FreqDatum) bool) bool {
+	return f.peekAll(false, peeker)
+}
+
+func (f *DataRingBuffer) peekAll(startFromOlder bool, peeker func(d *FreqDatum) bool) bool {
 	if f.tail < 0 {
 		return false
 	}

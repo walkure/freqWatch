@@ -47,7 +47,7 @@ func (h *dumperHandler) generateJSON(place string) string {
 	}
 
 	jsonData := make([]string, 0, 600)
-	dbr.PeekAll(false, func(d *databin.FreqDatum) bool {
+	dbr.PeekFromNewer(func(d *databin.FreqDatum) bool {
 		jsonData = append(jsonData, d.ToJSON())
 		return false
 	})
