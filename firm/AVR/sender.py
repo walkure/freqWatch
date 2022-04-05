@@ -13,9 +13,8 @@ ambientWriteKey = 'HOGEHOGE'
 ambientChannelId = 114514
 
 class ACFreqWatcher(asyncio.Protocol):
-    def __init__ (self):
-        # If you initializes at out of __init__ , You will receive an exception 'attached to a different loop'
-        self.__queue = asyncio.Queue()
+    def __init__ (self,queue):
+        self.__queue = queue
 
     def connection_made(self, transport):
         self.transport = transport
@@ -97,16 +96,19 @@ class ACFreqSender:
                 asyncio.create_task(self.__send_ambient_async(session,it['freq']))
                 queue.task_done()
 
-async def main():
-    uartask = serial_asyncio.create_serial_connection(asyncio.get_event_loop(), ACFreqWatcher, ttyDev, baudrate=38400)
-    _ , watcher = await uartask
-    sendertask = ACFreqSender().send_metric_from_queue_async(watcher.get_queue())
+def main():
+    loop = asyncio.get_event_loop()
+    queue = asyncio.Queue()
 
-    # never return.
-    await asyncio.gather(uartask,sendertask)
+    uartask = serial_asyncio.create_serial_connection(loop, lambda: ACFreqWatcher(queue), ttyDev, baudrate=9600)
+    _,proto = loop.run_until_complete(uartask)
+    sendertask = ACFreqSender().send_metric_from_queue_async(queue)
+    loop.create_task(sendertask)
+    loop.run_forever()
+    loop.close()
+
 
 if __name__ == '__main__':
     logger = logging.getLogger(__name__)
     fmt = "%(asctime)s %(levelname)s :%(message)s"
     logging.basicConfig(level=logging.INFO, format=fmt)
-    asyncio.run(main())
