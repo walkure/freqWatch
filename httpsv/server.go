@@ -19,7 +19,7 @@ func StartHttpServer() {
 	// 60(seconds) * 10(minutes)
 	dumpBuffer := initDumper(60*10, "DUMP_BUFFER")
 
-	notifier := NewNotificationHandler(dumpBuffer)
+	notifier := NewNotificationHandler()
 	dumper := NewDumperHandler(dumpBuffer)
 
 	// 30(seconds)

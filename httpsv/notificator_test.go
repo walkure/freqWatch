@@ -12,56 +12,50 @@ import (
 
 func Test_notificator_handlerData(t *testing.T) {
 
-	// set dummy data to handle websocket URI
-	db := databin.NewDataBin(10)
-	db.GetRingBuffer("testplace").PushBack(&databin.FreqDatum{Epoch: 1, Freq: 1})
-
-	h := NewNotificationHandler(db)
+	h := NewNotificationHandler()
 
 	hsv := httptest.NewServer(h)
 	defer hsv.Close()
 
 	epochWants := int64(2)
 	freqWants := 810.514
+	placeWants := "testplace"
+	clientsWants := 1
 
-	wsc1 := connectWSClient(t, hsv, "/?place=testplace")
+	wsc1 := connectWSClient(t, hsv, "/")
 	defer wsc1.Close()
 
-	h.Notify("testplace", &databin.FreqDatum{Epoch: epochWants, Freq: freqWants})
+	h.Notify(placeWants, &databin.FreqDatum{Epoch: epochWants, Freq: freqWants})
 	data := recvWSNotifyData(t, wsc1)
-	clientsWants := 1
-	if data.Clients != clientsWants || data.Epoch != epochWants || data.Freq != freqWants {
-		t.Errorf("invalid datum: Client[want %d,got:%d],Epoch[want %d,got:%d] Freq[want %f,got:%f]",
-			clientsWants, data.Clients, epochWants, data.Epoch, freqWants, data.Freq)
+	if data.Clients != clientsWants || data.Epoch != epochWants || data.Freq != freqWants || data.Place != placeWants {
+		t.Errorf("invalid datum: Client[want %d,got:%d],Epoch[want %d,got:%d] Freq[want %f,got:%f] Place[wants %s,got:%s]",
+			clientsWants, data.Clients, epochWants, data.Epoch, freqWants, data.Freq, placeWants, data.Place)
 	}
 
-	wsc2 := connectWSClient(t, hsv, "/?place=testplace")
+	wsc2 := connectWSClient(t, hsv, "/")
 	defer wsc2.Close()
 
 	epochWants = int64(3)
 	freqWants = 514.810
-
-	h.Notify("testplace", &databin.FreqDatum{Epoch: epochWants, Freq: freqWants})
-	data = recvWSNotifyData(t, wsc2)
+	placeWants = "test----place"
 	clientsWants = 2
-	if data.Clients != clientsWants || data.Epoch != epochWants || data.Freq != freqWants {
-		t.Errorf("invalid datum: Client[want %d,got:%d],Epoch[want %d,got:%d] Freq[want %f,got:%f]",
-			clientsWants, data.Clients, epochWants, data.Epoch, freqWants, data.Freq)
+
+	h.Notify(placeWants, &databin.FreqDatum{Epoch: epochWants, Freq: freqWants})
+	data = recvWSNotifyData(t, wsc2)
+	if data.Clients != clientsWants || data.Epoch != epochWants || data.Freq != freqWants || data.Place != placeWants {
+		t.Errorf("invalid datum: Client[want %d,got:%d],Epoch[want %d,got:%d] Freq[want %f,got:%f] Place[wants %s,got:%s]",
+			clientsWants, data.Clients, epochWants, data.Epoch, freqWants, data.Freq, placeWants, data.Place)
 	}
 }
 
 func Test_notificator_handlerJsonPing(t *testing.T) {
 
-	// set dummy data to handle websocket URI
-	db := databin.NewDataBin(10)
-	db.GetRingBuffer("testplace").PushBack(&databin.FreqDatum{Epoch: 1, Freq: 1})
-
-	h := NewNotificationHandler(db)
+	h := NewNotificationHandler()
 
 	hsv := httptest.NewServer(h)
 	defer hsv.Close()
 
-	wsc := connectWSClient(t, hsv, "/?place=testplace")
+	wsc := connectWSClient(t, hsv, "/")
 	defer wsc.Close()
 
 	if err := wsc.WriteMessage(websocket.TextMessage, []byte("\"ping\"")); err != nil {

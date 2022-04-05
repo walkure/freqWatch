@@ -7,6 +7,7 @@
 <body>
 
 <div id="current-users">---</div>
+<div id="errors-placeholder">---</div>
 <div id="ambient">
 You can see more long span data at <a href="https://ambidata.io/bd/board.html?id=37603">Ambient</a>.
 </div>
@@ -39,7 +40,7 @@ function setupChart(){
                 label: 'Tokyo(50Hz)',
                 data: [],
                 borderColor:'rgb(0, 204, 102)',
-                place_id: 'tokyo',
+                place_id: 'saitama',
                 yAxisID: 'y50'
             }]
         },
@@ -94,14 +95,12 @@ function setupChart(){
     window.freqChartData = {
         "chart": freqChart,
         "config": config,
-        "wsc":[null,null]
+        "wsc":null,
     }
 }
 
-function beginChartDrawing(target,place){
-    const dumpUri = target + 'dump?place=' + place;
-    const textModMsg = document.getElementById('current-users');
-
+function beginChartDrawing(target){
+    const textErrorMsg = document.getElementById('errors-placeholder');
     const freqChart = window.freqChartData.chart;
     const chartConfig = window.freqChartData.config;
 
@@ -111,12 +110,9 @@ function beginChartDrawing(target,place){
             console.log("cannot find starting place:"+place);
             return;
         }
-        if(window.freqChartData.wsc[placeIndex] !== null){
-                window.freqChartData.wsc[placeIndex].close();
-                window.freqChartData.wsc[placeIndex] = null;
-        }
         const data = [];
         chartConfig.data.datasets[placeIndex].data = data;
+        const dumpUri = target + 'dump?place=' + place;
 
         fetch(dumpUri).then(response => {
             if (!response.ok) {
@@ -135,65 +131,60 @@ function beginChartDrawing(target,place){
 
             chartConfig.data.datasets[placeIndex].hidden = false;
             freqChart.update('quiet');
-        }).then(() => {
-            const wsUriBase = new URL(target);
-            wsUriBase.protocol = wsUriBase.protocol === 'http:' ? 'ws:' : 'wss:';
-            const wsUri = wsUriBase + 'ws?place=' +place;
-            const wsc = new WebSocket(wsUri);
-
-            wsc.onopen = () => window.freqChartData.wsc[placeIndex] = wsc;
-            
-            wsc.onmessage = event => {
-                const element = JSON.parse(event.data);
-                data.push({x:new Date(1000 * element.t),y:element.f});
-                textModMsg.textContent = element.c + "users.";
-                freqChart.update('quiet');
-            };
-
-            wsc.onclose = event => {
-                if(window.freqChartData.wsc[placeIndex] !== null){
-                    // re-load data and connect websocket
-                    dataLoader(place);
-                }
-            };
-
         }).catch(reason => {
             console.log("Fetch error place_index:"+placeIndex+" place:"+place);
             chartConfig.data.datasets[placeIndex].data = [];
             chartConfig.data.datasets[placeIndex].hidden = true;
             freqChart.update('quiet');
-            textModMsg.textContent = reason;
+            textErrorMsg.textContent = reason + " place:"+place;
         })
     };
 
-    // load data and connect websocket.
-    dataLoader(place);
+    // load data
+    chartConfig.data.datasets.forEach(it => dataLoader(it.place_id));
 }
 
-function endChartDrawing(place){
-    const placeIndex = window.freqChartData.config.data.datasets.findIndex( it => it. place_id === place);
-    if (placeIndex < 0){
-        console.log("cannot find closing place:"+place);
-        return;
+function getData(place){
+    const chartConfig = window.freqChartData.config;
+    const dataset = chartConfig.data.datasets.find(it => it.place_id === place);
+    if(dataset === undefined){
+        return undefined;
     }
-
-    const closingWs = window.freqChartData.wsc[placeIndex];
-    window.freqChartData.wsc[placeIndex] = null;
-    if(closingWs !== null){
-        closingWs.close();
-    }
-
-    window.freqChartData.config.data.datasets[placeIndex].data = [];
-    window.freqChartData.config.data.datasets[placeIndex].hidden = true;
-    window.freqChartData.chart.update('quiet');
+    return dataset.data;
 }
+
+function beginWebsocket(target){
+    const wsUriBase = new URL(target);
+    wsUriBase.protocol = wsUriBase.protocol === 'http:' ? 'ws:' : 'wss:';
+    const wsUri = wsUriBase + 'ws';
+    const wsc = new WebSocket(wsUri);
+    const freqChart = window.freqChartData.chart;
+    const textModMsg = document.getElementById('current-users');
+
+    wsc.onmessage = event => {
+        const element = JSON.parse(event.data);
+        const data = getData(element.p);
+        if(data === undefined){
+            console.log("unknonw place:"+elemnt.p);
+            return;
+        }
+        data.push({x:new Date(1000 * element.t),y:element.f});
+        textModMsg.textContent = element.c + "users.";
+        freqChart.update('quiet');
+    };
+
+    wsc.onclose = event => {
+        beginWebsocket(target);
+    };
+}
+
 const targetHost = 'https://www2.zxvf.jp/freqWatch/d/';
 //const targetHost = 'http://localhost:8080/';
 
 function initialize(){
     setupChart();
-    beginChartDrawing(targetHost,'tokyo');
-    beginChartDrawing(targetHost,'kyoto');
+    beginChartDrawing(targetHost);
+    beginWebsocket(targetHost);
 }
 function resetZoon(){
     window.freqChartData?.chart?.resetZoom();

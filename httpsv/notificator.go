@@ -11,10 +11,8 @@ import (
 )
 
 type notificatorHandler struct {
-	mu           sync.RWMutex
-	clients      map[*websocket.Conn]chan *databin.FreqDatum
-	places       map[chan *databin.FreqDatum]string
-	bufferGetter func(place string) *databin.DataRingBuffer
+	mu      sync.RWMutex
+	clients map[*websocket.Conn]chan *notifyData
 }
 
 var upgrader = websocket.Upgrader{
@@ -34,44 +32,36 @@ const (
 	pingPeriod = (pongWait * 9) / 10
 )
 
-func NewNotificationHandler(db *databin.DataBin) *notificatorHandler {
+func NewNotificationHandler() *notificatorHandler {
 	return &notificatorHandler{
-		clients:      make(map[*websocket.Conn]chan *databin.FreqDatum),
-		places:       make(map[chan *databin.FreqDatum]string),
-		bufferGetter: db.LookupRingBuffer,
+		clients: make(map[*websocket.Conn]chan *notifyData),
 	}
 }
 
 func (h *notificatorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	place := r.FormValue("place")
-
-	if h.bufferGetter(place) == nil {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Print(err)
 		// http error wrote in Upgrade()
 		return
 	}
-	h.wsNotification(place, ws)
+	h.wsNotification(ws)
 
 }
 
 type notifyData struct {
 	databin.FreqDatum
-	Clients int `json:"c"`
+	Clients int    `json:"c"`
+	Place   string `json:"p"`
 }
 
-func (h *notificatorHandler) wsNotification(place string, ws *websocket.Conn) {
+func (h *notificatorHandler) wsNotification(ws *websocket.Conn) {
 
-	updateMessage := make(chan *databin.FreqDatum, 1)
+	updateMessage := make(chan *notifyData, 1)
 	func() {
 		h.mu.Lock()
 		defer h.mu.Unlock()
 		h.clients[ws] = updateMessage
-		h.places[updateMessage] = place
 	}()
 
 	pingResult := make(chan string, 1)
@@ -80,7 +70,7 @@ func (h *notificatorHandler) wsNotification(place string, ws *websocket.Conn) {
 	go h.wsTransmitter(ws, updateMessage, pingResult)
 }
 
-func (h *notificatorHandler) wsTransmitter(ws *websocket.Conn, updateMessage chan *databin.FreqDatum, pingResult chan string) {
+func (h *notificatorHandler) wsTransmitter(ws *websocket.Conn, updateMessage chan *notifyData, pingResult chan string) {
 	defer ws.Close()
 
 	// writer loop
@@ -95,16 +85,8 @@ func (h *notificatorHandler) wsTransmitter(ws *websocket.Conn, updateMessage cha
 			}
 		case updateMsg, ok := <-updateMessage:
 			if ok {
-				data := notifyData{
-					FreqDatum: databin.FreqDatum{
-						Epoch: updateMsg.Epoch,
-						Freq:  updateMsg.Freq,
-					},
-					Clients: len(h.clients),
-				}
-
 				ws.SetWriteDeadline(time.Now().Add(writeWait))
-				if err := ws.WriteJSON(data); err != nil {
+				if err := ws.WriteJSON(*updateMsg); err != nil {
 					ws.Close()
 					loop = false
 				}
@@ -127,7 +109,6 @@ func (h *notificatorHandler) wsTransmitter(ws *websocket.Conn, updateMessage cha
 		h.mu.Lock()
 		defer h.mu.Unlock()
 		delete(h.clients, ws)
-		delete(h.places, updateMessage)
 
 		//should close channel after removes from  clients list.
 		close(updateMessage)
@@ -167,8 +148,10 @@ func (h *notificatorHandler) Notify(place string, datum *databin.FreqDatum) {
 	defer h.mu.RUnlock()
 
 	for _, ch := range h.clients {
-		if h.places[ch] == place {
-			ch <- datum
+		ch <- &notifyData{
+			FreqDatum: *datum,
+			Place:     place,
+			Clients:   len(h.clients),
 		}
 	}
 }
