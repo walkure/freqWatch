@@ -6,7 +6,8 @@
 </head>
 <body>
 
-<div id="current-users">---</div>
+
+<div id="status"><span id="current-users">data waiting...</span> Kyoto:<span id="freq-kyoto-placeholder">data waiting...</span> , Tokyo:<span id="freq-tokyo-placeholder">data waiting...</span> </div>
 <div id="errors-placeholder">---</div>
 <div id="ambient">
 You can see more long span data at <a href="https://ambidata.io/bd/board.html?id=37603">Ambient</a>.
@@ -148,13 +149,26 @@ function beginChartDrawing(target){
     chartConfig.data.datasets.forEach(it => dataLoader(it.place_id));
 }
 
-function getData(place){
+function getDataset(place){
     const chartConfig = window.freqChartData.config;
     const dataset = chartConfig.data.datasets.find(it => it.place_id === place);
     if(dataset === undefined){
         return undefined;
     }
     return dataset.data;
+}
+const freqHistoryData = {};
+
+function formatFreqMsg(place,freq){
+    let freqMsg =  freq.toFixed(4);
+    if(place in freqHistoryData){
+        const diff = freq - freqHistoryData[place];
+        freqMsg += "("+ (diff >= 0 ? '+': '') +diff.toFixed(4)+")";
+    }
+    freqHistoryData[place] = freq;
+    freqMsg += "Hz";
+
+    return freqMsg;
 }
 
 function beginWebsocket(target){
@@ -164,17 +178,32 @@ function beginWebsocket(target){
     const wsc = new WebSocket(wsUri);
     const freqChart = window.freqChartData.chart;
     const textModMsg = document.getElementById('current-users');
+    const textKyotoFreq = document.getElementById('freq-kyoto-placeholder');
+    const textTokyoFreq = document.getElementById('freq-tokyo-placeholder');
 
+    
     wsc.onmessage = event => {
         const element = JSON.parse(event.data);
-        const data = getData(element.p);
-        if(data === undefined){
+        const dataset = getDataset(element.p);
+        if(dataset === undefined){
             console.log("unknonw place:"+elemnt.p);
             return;
         }
-        data.push({x:new Date(1000 * element.t),y:element.f});
+        dataset.push({x:new Date(1000 * element.t),y:element.f});
         textModMsg.textContent = element.c + "users.";
         freqChart.update('quiet');
+
+        switch(element.p){
+            case "kyoto":
+                textKyotoFreq.textContent = formatFreqMsg("kyoto",element.f);
+                break;
+            case "tokyo":
+                textTokyoFreq.textContent = formatFreqMsg("tokyo",element.f);
+                break;
+            default:
+                console.log("unknown place:"+element.p);
+                break;
+        }
     };
 
     wsc.onclose = event => {
