@@ -178,8 +178,11 @@ function beginWebsocket(target){
     };
 
     wsc.onclose = event => {
+        window.freqChartData.wsc = undefined;
         beginWebsocket(target);
     };
+
+    window.freqChartData.wsc = wsc;
 }
 
 const targetHost = 'https://www2.zxvf.jp/freqWatch/d/';
