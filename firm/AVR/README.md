@@ -11,6 +11,8 @@ Atmel AVR(ATTinyとか)で周波数観測をするファーム
 
 Microchip Studio(Version 7.0.2052)でビルドして適当なライタつないで書き込みました。
 
+なお、PlatformIO(on Windows)でも書き込めるのを確認しています。
+
 ## sender.py
 
 Raspberry PiのUARTに繋いで観測データを流し込み、それを随時アップロードするスクリプトです。`asyncio`で書いたので`apt`で諸々入れる必要がありそう。
@@ -18,3 +20,5 @@ Raspberry PiのUARTに繋いで観測データを流し込み、それを随時�
 設定は `sender.py` にベタ書きです。そのうちsystemdのunit file書きます。
 
 Ambientへのアップロードを使わない場合は、`__send_ambient_async`読んでるとこをコメントアウトしてください。
+
+※GPIOがPL011でなくminiUARTに繋がっていると取りこぼしてデータがもりもり化けるので、気をつけてください。
