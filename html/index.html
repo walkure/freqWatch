@@ -50,7 +50,8 @@ function setupChart(){
                 x: {
                     type: 'realtime',
                     realtime:{
-                        duration: 10*60*1000
+                        duration: 10*60*1000,
+                        ttl: 30 * 60 * 1000
                     }
                 },
                 y60:{
