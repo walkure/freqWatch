@@ -1,11 +1,13 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="ja" prefix="og: https://ogp.me/ns#">
 <head>
 <meta charset="utf-8">
-<title>freq chart</title> 
+<meta property="og:title" content="Monitor power frequency in Japan" />
+<meta property="og:type" content="website" />
+<meta property="og:description" content="Monitor power frequency in Japan(Kyoto and Tokyo)" />
+<title>Monitor power frequency in Japan</title> 
 </head>
 <body>
-
 
 <table id="status">
 <tr><td><span id="current-users">data waiting...</span></td>
@@ -145,7 +147,7 @@ function beginChartDrawing(target){
             freqChart.update('quiet');
         }).catch(reason => {
             console.log("Fetch error place_index:"+placeIndex+" place:"+place);
-            chartConfig.data.datasets[placeIndex].data = [];
+            chartConfig.data.datasets[placeIndex].data = [];    
             chartConfig.data.datasets[placeIndex].hidden = true;
             freqChart.update('quiet');
             textErrorMsg.textContent = reason + " place:"+place;
