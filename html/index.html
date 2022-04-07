@@ -24,6 +24,7 @@ You can see more long span data at <a href="https://ambidata.io/bd/board.html?id
 <div class="chart-container" style="height:40vh; width:80vw; display: inline-block;">    
 <canvas id="freqChart"></canvas>
 <button type="button" onclick="resetZoon();"> reset zoom / pan </button>
+<button type="button" onclick="reInitChart();"> re-init chart </button>
 </div>
 <!-- import libraries -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js" integrity="sha512-QSkVNOCYLtj73J4hbmVoOV6KVZuMluZlioC+trLpewV8qMjsWqlIQvkn1KGX2StWvPMdWGBqim1xlC8krl1EKQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -237,6 +238,12 @@ function initialize(){
     beginChartDrawing(targetHost);
     beginWebsocket(targetHost);
 }
+
+function reInitChart(){
+    beginChartDrawing(targetHost);
+    resetZoon();
+}
+
 function resetZoon(){
     window.freqChartData?.chart?.resetZoom();
 }
