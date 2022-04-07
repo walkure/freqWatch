@@ -170,7 +170,13 @@ function formatFreqMsg(place,freq){
     let freqMsg =  freq.toFixed(4);
     if(place in freqHistoryData){
         const diff = freq - freqHistoryData[place];
-        freqMsg += "("+ (diff >= 0 ? '+': '') +diff.toFixed(4)+")";
+        if (diff > 0){
+            freqMsg += "(▲"+diff.toFixed(4)+")";
+        }else if(diff < 0){
+            freqMsg += "(▼"+(diff*-1).toFixed(4)+")";
+        }else{
+            freqMsg += "(no change)";
+        }
     }
     freqHistoryData[place] = freq;
     freqMsg += "Hz";
