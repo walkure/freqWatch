@@ -1,0 +1,31 @@
+Grafanaからfreqgraph.pngを取り出すsystemd設定例
+
+==== freqgraph.cfg
+APITOKEN='eyJ-----rIjoia=='
+URL='https://grafana/render/d-solo/poyo/hoge?orgId=1&refresh=1m&theme=light&panelId=48&width=1500&height=500&tz=Asia%2FTokyo&from=now-24h&to=now'
+====
+
+==== freqgraph.service
+[Unit]
+Description=freqgraph generator
+
+[Service]
+Type=oneshot
+EnvironmentFile=/usr/local/etc/freqgraph.cfg
+ExecStart=/usr/bin/curl -H "Authorization: Bearer ${APITOKEN}" -o /var/www/freqWatch/freqgraph.png "${URL}"
+
+[Install]
+WantedBy=multi-user.target
+====
+
+==== freqgraph.timer
+[Unit]
+Description=freqgraph timer
+
+[Timer]
+OnCalendar=*-*-* *:03,13,23,33,43,53:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+====
