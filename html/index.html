@@ -26,6 +26,11 @@ You can see more long span data at <a href="https://ambidata.io/bd/board.html?id
 <button type="button" onclick="resetZoon();"> reset zoom / pan </button>
 <button type="button" onclick="reInitChart();"> re-init chart </button>
 </div>
+<hr>
+<div class="graph-container">
+Frequency Graph(10mins average). updates at *:03,13,23,33,43,53<br>
+<img src="https://www2.zxvf.jp/freqWatch/freqgraph.png" alt="freq graph" id ="freqgraph-image">
+</div>
 <!-- import libraries -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js" integrity="sha512-QSkVNOCYLtj73J4hbmVoOV6KVZuMluZlioC+trLpewV8qMjsWqlIQvkn1KGX2StWvPMdWGBqim1xlC8krl1EKQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js" integrity="sha512-qTXRIMyZIFb8iQcfjXWCO8+M5Tbc38Qi5WzdPOYZHIlZpzBHG3L3by84BBBOiRGiEb7KKtAOAs5qYdUiZiQNNQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -247,9 +252,24 @@ function reInitChart(){
 function resetZoon(){
     window.freqChartData?.chart?.resetZoom();
 }
+
+const freqGraphImage = document.getElementById("freqgraph-image")
+function updateFreqGraphImage()
+{
+    if(freqGraphImage.complete) {
+        const currentUrl = freqGraphImage.src;
+        console.log("currentURL"+currentUrl);
+        const baseUrl = currentUrl.split("?")[0];
+        freqGraphImage.src = baseUrl + '?time='+ new Date().getTime();
+    }
+
+    // reload interval: 5 mins
+    setTimeout(updateFreqGraphImage, 1000 * 60 * 5);
+}
 </script>
 <script>
 initialize();
+updateFreqGraphImage();
 </script>
 
 
