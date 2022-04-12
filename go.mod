@@ -1,4 +1,4 @@
-module github.com/walkure/freq_recv
+module github.com/walkure/freqWatch
 
 go 1.16
 

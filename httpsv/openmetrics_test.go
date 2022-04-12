@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/walkure/freq_recv/databin"
+	"github.com/walkure/freqWatch/databin"
 )
 
 func Test_openmetrics_handlerNil(t *testing.T) {

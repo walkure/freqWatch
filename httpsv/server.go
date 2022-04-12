@@ -7,7 +7,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/walkure/freq_recv/databin"
+	"github.com/walkure/freqWatch/databin"
 )
 
 func StartHttpServer() {

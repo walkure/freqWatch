@@ -3,7 +3,7 @@ package httpsv
 import (
 	"testing"
 
-	"github.com/walkure/freq_recv/databin"
+	"github.com/walkure/freqWatch/databin"
 )
 
 func Test_DumperSimple(t *testing.T) {

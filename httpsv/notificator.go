@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/walkure/freq_recv/databin"
+	"github.com/walkure/freqWatch/databin"
 )
 
 type notificatorHandler struct {

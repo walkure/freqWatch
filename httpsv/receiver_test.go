@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/walkure/freq_recv/databin"
+	"github.com/walkure/freqWatch/databin"
 )
 
 func Test_recv_handler(t *testing.T) {

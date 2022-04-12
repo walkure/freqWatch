@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/walkure/freq_recv/databin"
+	"github.com/walkure/freqWatch/databin"
 )
 
 type openmetriucsHandler struct {

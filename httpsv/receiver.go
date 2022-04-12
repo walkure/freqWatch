@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/walkure/freq_recv/databin"
+	"github.com/walkure/freqWatch/databin"
 )
 
 type ReceiveCallback func(place string, datum *databin.FreqDatum)

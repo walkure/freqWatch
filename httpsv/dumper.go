@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/walkure/freq_recv/databin"
+	"github.com/walkure/freqWatch/databin"
 )
 
 type dumperHandler struct {
