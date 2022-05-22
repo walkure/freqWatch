@@ -1,0 +1,11 @@
+#include <Arduino.h>
+
+const extern uint16_t ambient_ch = AMBIENT_CHANNEL;
+PROGMEM extern const char writeKey[] = "AMBIENT_KEY";
+
+PROGMEM extern const char endpoint[] = "http://ENDPOINT/";
+PROGMEM extern const char place[]  = "PLACE";
+PROGMEM extern const char shareKey[] = "SHARE_KEY";
+
+PROGMEM extern const char wifiSSID[] = "SSID";
+PROGMEM extern const char wifiPass[] = "PASSWORD";
