@@ -24,3 +24,19 @@ ESP8266で周波数監視をするファームウェアです。コアが同じE
 
 - [AsyncHTTPRequest_Generic](https://github.com/khoih-prog/AsyncHTTPRequest_Generic)
   - [ESPAsyncTCP](https://github.com/me-no-dev/ESPAsyncTCP)
+
+### ライブラリのバグについて
+
+ESPAsyncTCPとAsyncHTTPRequest_Genericともにバグが残っています。とくにESPAsyncTCPは長期間運用するには辛いバグがあるのでオリジナルの使用はおすすめできない。
+
+#### ESPAsyncTCP
+
+正常に送信完了できなかった場合の処理にバグがあって、いちど正常に送信できないと挙動が怪しくなる。
+
+- <https://github.com/serek4/ESPAsyncTCP>
+- <https://github.com/walkure/ESPAsyncTCP>
+
+#### AsyncHTTPRequest_Generic
+ログを有効にした状態で接続先がWindowsのとき、内部状態が期待しない遷移をしてクラッシュした(Linux相手だと再現しない…。)
+
+- <https://github.com/walkure/AsyncHTTPRequest_Generic>
