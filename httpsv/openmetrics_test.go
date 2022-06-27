@@ -64,8 +64,8 @@ func Test_openmetrics_handlerUpdate(t *testing.T) {
 
 	expected := `# HELP power_freq The frequency of power line.
 # TYPE power_freq gauge
-power_freq{place="test1"} 50.012000 4000
 power_freq{place="test1"} 60.012000 1000
+power_freq{place="test1"} 50.012000 4000
 `
 	if got := res.Body.String(); got != expected {
 		t.Errorf("want %s, but %s", expected, got)
