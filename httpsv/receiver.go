@@ -18,6 +18,11 @@ type receiverHandler struct {
 	ShareKey string
 }
 
+const (
+	ceilFreq  = 60 + 5
+	floorFreq = 50 - 5
+)
+
 func (h *receiverHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusBadRequest)
@@ -50,6 +55,11 @@ func (h *receiverHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	freq, err := strconv.ParseFloat(freqParam, 64)
 	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if freq < floorFreq || freq > ceilFreq {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
