@@ -4,7 +4,7 @@ ESP32で周波数監視をするファームウェアです。
 
 ## build
 
-Arduino でビルドできるはず。
+PlatformIO でビルドできるはず。
 
 ## config
 
