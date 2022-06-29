@@ -1,9 +1,9 @@
+#include <stdint.h>
 
-#pragma once
 const char* wifi_ssid = "_SSID_";
 const char* wifi_passwd = "_PASSWORD_";
 
-constexpr uint16_t ambient_ch = 114514;
+const extern uint16_t ambient_ch = 114514;
 const char* ambient_key = "HOGEHOGE";
 
 const char *metric_base = "http://example.com/do";
