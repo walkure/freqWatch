@@ -5,6 +5,16 @@
 #include <HTTPClient.h>
 #include <const.h>
 
+class _NullStream : public Stream {
+public:
+    int available(){return 0;}
+    int read() {return -1;}
+    int peek() {return -1;}
+    size_t write(uint8_t){return 1;}
+};
+
+_NullStream nst;
+
 void sendFreqMetric(const char *freqMetric)
 {
     mbedtls_md_context_t ctx;
@@ -42,14 +52,16 @@ void sendFreqMetric(const char *freqMetric)
         Serial.print("CE:");
         Serial.print(httpCode);
         Serial.print(" ");
+        http.end();
+        return;
+    }
+    if (httpCode == HTTP_CODE_OK)
+    {
+        http.writeToStream(&nst);
+        http.end();
         return;
     }
     http.end();
-
-    if (httpCode == HTTP_CODE_OK)
-    {
-        return;
-    }
 
     Serial.print("HE:");
     Serial.print(httpCode);
