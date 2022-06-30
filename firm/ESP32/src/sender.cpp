@@ -35,7 +35,7 @@ void sendFreqMetric(const char *freqMetric)
         Serial.println("cannot begin");
         return;
     }
-    http.setConnectTimeout(100);
+    //http.setConnectTimeout(1000);
     auto httpCode = http.GET();
     if (httpCode < 0)
     {
