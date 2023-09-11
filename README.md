@@ -4,7 +4,7 @@
 
 ## build
 
-``` go build ```
+receiverディレクトリに移動して ``` go build ```
 
 ## configuration
 
