@@ -48,7 +48,7 @@ func Test_recv_handler(t *testing.T) {
 		{
 			"invalid method",
 			args{http.MethodPost, "/hoge?place=hoge&freq=50.124&sign=a3dcbf4171dfe3d1f345895fcc86d8ca", ""},
-			resp{http.StatusBadRequest, 0., ""},
+			resp{http.StatusMethodNotAllowed, 0., ""},
 		},
 		{
 			"floor",

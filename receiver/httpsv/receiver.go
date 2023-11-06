@@ -25,13 +25,15 @@ const (
 
 func (h *receiverHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
+	const badReq = "Bad Request"
+
 	signParam := r.FormValue("sign")
 	if len(signParam) != 32 {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, badReq, http.StatusBadRequest)
 		return
 	}
 	place := r.FormValue("place")
@@ -44,23 +46,23 @@ func (h *receiverHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	sign := hex.EncodeToString(hash.Sum(nil))
 
 	if sign != signParam {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, badReq, http.StatusBadRequest)
 		return
 	}
 
 	if place == "" {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, badReq, http.StatusBadRequest)
 		return
 	}
 
 	freq, err := strconv.ParseFloat(freqParam, 64)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, badReq, http.StatusBadRequest)
 		return
 	}
 
 	if freq < floorFreq || freq > ceilFreq {
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, badReq, http.StatusBadRequest)
 		return
 	}
 
