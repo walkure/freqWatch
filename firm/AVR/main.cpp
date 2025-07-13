@@ -80,7 +80,7 @@ void UpdatePeriod(float *ave,float *filtered_average){
 
 /////////////////////////////////////////////////
 // ＵＡＲＴ関連
-constexpr uint16_t BAUD = 38400;
+constexpr uint16_t BAUD = 9600;
 
 
 constexpr uint16_t USART_Baud(uint16_t baudrate){
