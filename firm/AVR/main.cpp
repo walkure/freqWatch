@@ -24,8 +24,12 @@ volatile uint32_t SumV;
 
 constexpr uint8_t freq_base = 50;
 constexpr uint32_t clk_base = F_CPU / 8;
-constexpr uint16_t cap_ceil = clk_base / (freq_base - 5);  // 1000000/55 = 18181
-constexpr uint16_t cap_floor = clk_base / (freq_base + 5); // 1000000/65 = 15384
+constexpr uint16_t cap_ceil = clk_base / (freq_base - 5);  // 1000000/45 = 22222
+constexpr uint16_t cap_floor = clk_base / (freq_base + 5); // 1000000/55 = 18182
+
+constexpr uint16_t hard_cap_ceil = clk_base / (50 - 5);  // 1000000/45 = 22222
+constexpr uint16_t hard_cap_floor = clk_base / (60 + 5); // 1000000/65 = 15385
+
 
 volatile uint16_t _filtered_count;
 volatile uint32_t _filtered_sum;
@@ -36,8 +40,10 @@ ISR(TIMER1_CAPT_vect){
 	CapV = (uint16_t)ICR1 - PreCap;       // 差分を求めて周期を算出
 	PreCap = (uint16_t)ICR1;
 	
-	SumV += CapV;
-	NumV++;
+	if(CapV > hard_cap_floor && CapV < hard_cap_ceil){
+		SumV += CapV;
+		NumV++;
+	}
 	
 	if(CapV > cap_floor && CapV < cap_ceil){
 		_filtered_count ++;
