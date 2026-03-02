@@ -1,37 +1,38 @@
 module github.com/walkure/freqWatch/grapher
 
-go 1.19
+go 1.23
+
+toolchain go1.24.13
 
 require (
-	gioui.org v0.3.0 // indirect
-	gioui.org/cpu v0.0.0-20220412190645-f1e9e8c3b1f7 // indirect
-	gioui.org/shader v1.0.6 // indirect
-	gioui.org/x v0.3.0 // indirect
+	github.com/prometheus/client_golang v1.16.0
+	github.com/prometheus/common v0.42.0
+	go-hep.org/x/hep v0.34.0
+	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
+	gonum.org/v1/plot v0.14.0
+)
+
+require (
 	git.sr.ht/~sbinet/gg v0.5.0 // indirect
 	github.com/ajstarks/svgo v0.0.0-20211024235047-1546f124cd8b // indirect
-	github.com/andybalholm/stroke v0.0.0-20230904101225-24ef450bc62c // indirect
 	github.com/campoy/embedmd v1.0.0 // indirect
 	github.com/go-fonts/liberation v0.3.1 // indirect
 	github.com/go-latex/latex v0.0.0-20230307184459-12ec69307ad9 // indirect
 	github.com/go-pdf/fpdf v0.8.0 // indirect
-	github.com/go-text/typesetting v0.0.0-20230905121921-abdbcca6e0eb // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/gonuts/binary v0.2.0 // indirect
+	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/kr/text v0.2.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/prometheus/client_golang v1.16.0 // indirect
-	github.com/prometheus/common v0.42.0 // indirect
-	go-hep.org/x/hep v0.34.0 // indirect
-	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
-	golang.org/x/exp/shiny v0.0.0-20230905200255-921286631fa9 // indirect
+	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	golang.org/x/image v0.12.0 // indirect
-	golang.org/x/sync v0.3.0 // indirect
-	golang.org/x/sys v0.12.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
+	golang.org/x/net v0.30.0 // indirect
+	golang.org/x/sync v0.8.0 // indirect
+	golang.org/x/text v0.19.0 // indirect
+	golang.org/x/tools v0.26.0 // indirect
 	gonum.org/v1/gonum v0.14.0 // indirect
-	gonum.org/v1/plot v0.14.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	rsc.io/pdf v0.1.1 // indirect
 )
