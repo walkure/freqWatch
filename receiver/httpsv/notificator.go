@@ -101,6 +101,8 @@ func (h *notificatorHandler) wsTransmitter(ws *websocket.Conn, updateMessage cha
 					ws.Close()
 					loop = false
 				}
+			} else {
+				loop = false
 			}
 		}
 	}
@@ -145,13 +147,22 @@ func wsReceiver(ws *websocket.Conn, pingResult chan string) {
 
 func (h *notificatorHandler) Notify(place string, datum *databin.FreqDatum) {
 	h.mu.RLock()
-	defer h.mu.RUnlock()
-
+	clients := len(h.clients)
+	chs := make([]chan *notifyData, 0, clients)
 	for _, ch := range h.clients {
-		ch <- &notifyData{
-			FreqDatum: *datum,
-			Place:     place,
-			Clients:   len(h.clients),
+		chs = append(chs, ch)
+	}
+	h.mu.RUnlock()
+
+	msg := &notifyData{
+		FreqDatum: *datum,
+		Place:     place,
+		Clients:   clients,
+	}
+	for _, ch := range chs {
+		select {
+		case ch <- msg:
+		default:
 		}
 	}
 }
