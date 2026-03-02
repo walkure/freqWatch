@@ -59,7 +59,7 @@ void TIMER1_Init(void){
 	TCCR1B = 0;
 	TCNT1 = 0;
 
-	TCCR1B =  0x02;   // 8MHzを8分周
+	TCCR1B = (1 << ICNC1) | 0x02;   // 8MHzを8分周
 	TIMSK  |= (1 << ICIE1); // キャプチャ割り込み許可
 }
 
