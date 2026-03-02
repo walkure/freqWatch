@@ -20,6 +20,9 @@ func main() {
 var promURL = flag.String("promURL", "http://localhost:9090/", "Prometheus server url")
 var resultPath = flag.String("graphPath", "graph.png", "result file path")
 var graphConfigPath = flag.String("graphConfig", "graph.json", "graph config file path")
+var sampleDuration = flag.Duration("sampleDuration", time.Second*30, "sampling duration")
+var graphTimePeriod = flag.Duration("graphTimePeriod", time.Hour*24, "graph time period")
+
 
 func execute() int {
 	jst, err := time.LoadLocation("Asia/Tokyo")
@@ -46,7 +49,7 @@ func execute() int {
 	now := time.Now()
 	//now := time.Unix(1691903795, 0).In(jst)
 
-	matrix, err := getMetrics(ctx, *promURL, now, time.Second*30, time.Hour*24)
+	matrix, err := getMetrics(ctx, *promURL, now, *sampleDuration, *graphTimePeriod)
 	if err != nil {
 		slog.Error("failure to load metrics", slog.Any("error", err))
 		return -1
