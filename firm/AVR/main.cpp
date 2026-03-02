@@ -19,7 +19,7 @@ constexpr uint8_t UARTTX=PD1; // PORT D1 = TX
 // タイマ１関連
 // 周期測定ののための変数
 
-volatile uint16_t NumV,CapV,PreCap;
+volatile uint16_t NumV,PreCap;
 volatile uint32_t SumV;
 
 constexpr uint8_t freq_base = 50;
@@ -30,6 +30,7 @@ constexpr uint16_t cap_floor = clk_base / (freq_base + 5); // 1000000/55 = 18182
 constexpr uint16_t hard_cap_ceil = clk_base / (50 - 5);  // 1000000/45 = 22222
 constexpr uint16_t hard_cap_floor = clk_base / (60 + 5); // 1000000/65 = 15385
 
+constexpr uint32_t min_period = clk_base * 10 / 1000;  // 10ms = 10000
 
 volatile uint16_t _filtered_count;
 volatile uint32_t _filtered_sum;
@@ -37,17 +38,23 @@ volatile uint32_t _filtered_sum;
 // 割り込みハンドラ
 ISR(TIMER1_CAPT_vect){
 	TIFR |= (1<<ICF1);
-	CapV = (uint16_t)ICR1 - PreCap;       // 差分を求めて周期を算出
-	PreCap = (uint16_t)ICR1;
-	
-	if(CapV > hard_cap_floor && CapV < hard_cap_ceil){
-		SumV += CapV;
+	uint16_t now = ICR1;
+	uint16_t diff = now - PreCap;
+
+	// インターバルで足切り
+	if (diff < min_period) {
+		return;
+	}
+
+	PreCap = now; // 有効なエッジの時だけ基準点を更新	
+	if(diff > hard_cap_floor && diff < hard_cap_ceil){
+		SumV += diff;
 		NumV++;
 	}
 	
-	if(CapV > cap_floor && CapV < cap_ceil){
+	if(diff > cap_floor && diff < cap_ceil){
 		_filtered_count ++;
-		_filtered_sum += CapV;
+		_filtered_sum += diff;
 	}
 	
 }
