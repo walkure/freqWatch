@@ -1,202 +1,135 @@
-// FUSEは外部クリスタル8MHz、システムクロックを分周なしに設定(E:FF, H:DF, L:EF)
+﻿// FUSEは外部クリスタル8MHz、システムクロックを分周なしに設定(E:FF, H:DF, L:EF)
 
-#include <avr/io.h>   // /usr/lib/avr/include/
-#include <avr/sfr_defs.h>
+#include <avr/io.h>
 #include <avr/interrupt.h>
-#include <util/delay.h>
-#include <util/atomic.h>
-#include <string.h>
 
-
-/////////////////////////////////////////////////
-// 端子定義
-constexpr uint8_t HEARTBEAT=PD5;	 // PORT D5 動作確認パルス出力
-constexpr uint8_t ICPPIN=PD6; // PORT D6 = ICP
-constexpr uint8_t UARTTX=PD1; // PORT D1 = TX
-
-
-/////////////////////////////////////////////////
-// タイマ１関連
-// 周期測定ののための変数
-
-volatile uint16_t NumV,PreCap;
-volatile uint32_t SumV;
-
-constexpr uint8_t freq_base = 50;
+// --- キャリブレーション用定数 ---
 constexpr uint32_t clk_base = F_CPU / 8;
-constexpr uint16_t cap_ceil = clk_base / (freq_base - 5);  // 1000000/45 = 22222
-constexpr uint16_t cap_floor = clk_base / (freq_base + 5); // 1000000/55 = 18182
+constexpr uint16_t TARGET_SAMPLES =50;
 
-constexpr uint16_t hard_cap_ceil = clk_base / (50 - 5);  // 1000000/45 = 22222
-constexpr uint16_t hard_cap_floor = clk_base / (60 + 5); // 1000000/65 = 15385
+// --- 共有変数 ---
+volatile uint32_t SumV = 0;
+volatile uint16_t NumV = 0;
+volatile uint8_t  DataReady = 0;
 
-constexpr uint32_t min_period = clk_base * 10 / 1000;  // 10ms = 10000
+volatile uint32_t snapSum = 0;
+volatile uint16_t snapNum = 0;
 
-volatile uint16_t _filtered_count;
-volatile uint32_t _filtered_sum;
+static uint32_t lastSum = 0;
+static uint16_t lastNum = 0;
 
-// 割り込みハンドラ
-ISR(TIMER1_CAPT_vect){
-	TIFR |= (1<<ICF1);
-	uint16_t now = ICR1;
-	uint16_t diff = now - PreCap;
-
-	// インターバルで足切り
-	if (diff < min_period) {
-		return;
-	}
-
-	PreCap = now; // 有効なエッジの時だけ基準点を更新	
-	if(diff > hard_cap_floor && diff < hard_cap_ceil){
-		SumV += diff;
-		NumV++;
-	}
-	
-	if(diff > cap_floor && diff < cap_ceil){
-		_filtered_count ++;
-		_filtered_sum += diff;
-	}
-	
+// --- USART送信処理 (PD1:TxD) ---
+void USART_SendChar(char c) {
+	// UCSRA: USART制御&ステータスレジスタA
+	// UDRE: USARTデータレジスタ空きフラグ（1=送信バッファが空いている）
+	while (!(UCSRA & (1 << UDRE)));
+	// UDR: USARTデータレジスタ（送受信バッファ）
+	UDR = c;
 }
 
-// タイマ１設定
-void TIMER1_Init(void){
-	// TCC1でICP信号（PD6端子）の周期を計測する
-	TCCR1A = 0; //initialize Timer1
-	TCCR1B = 0;
-	TCNT1 = 0;
-
-	TCCR1B = (1 << ICNC1) | 0x02;   // 8MHzを8分周
-	TIMSK  |= (1 << ICIE1); // キャプチャ割り込み許可
+void USART_num(uint32_t n) {
+	char buf[11];
+	uint8_t i = 0;
+	do {
+		buf[i++] = (n % 10) + '0';
+		n /= 10;
+	} while (n > 0);
+	while (i > 0) USART_SendChar(buf[--i]);
 }
 
-void UpdatePeriod(float *ave,float *filtered_average){
+// --- インプットキャプチャ割り込み (ICP1ピン:PD6) ---
+ISR(TIMER1_CAPT_vect) {
+	// ICR1: インプットキャプチャレジスタ（ICP1ピンの信号エッジ検出時のTimer1の値）
+	uint16_t cap = ICR1;
+	// TIFR: タイマー割り込みフラグレジスタ
+	// ICF1: インプットキャプチャフラグ（1を書き込むことでクリア）
+	TIFR = (1 << ICF1);
 
-	uint32_t tSumV,filtered_sum;
-	uint16_t tNumV,filtered_count;
-	// 割り込みで更新している変数をコピー＆初期化する
-	cli(); //割り込み停止
-	tSumV = SumV; tNumV = NumV;
-	SumV = 0; NumV = 0;
+	static uint16_t preCap = 0;
+	// タイマーオーバーフロー対応：uint16_tの符号なし減算により差分は常に正しく計算される
+	// 例：preCap=65533でタイマーが一周してcap=5の場合、diff = 5 - 65533 = 8（正しい）
+	auto diff = cap - preCap;
 	
-	filtered_count = _filtered_count; filtered_sum = _filtered_sum;
-	_filtered_count = 0; _filtered_sum = 0;
-	
-	sei();   //割り込み再開
-	*ave = (float)tSumV / tNumV;
-	if(filtered_count > 0){
-		*filtered_average = (float)filtered_sum / filtered_count;
-	}else{
-		*filtered_average = 0.;
+	// ノイズ除去フィルタ：パルス間隔が10ms（10000カウント）未満は無視
+	// 1MHz/8=125kHzカウントで10000÷1000000=10ms → 100Hz未満の信号や起動時の不安定な値を除外
+	if (diff < 10000) return;
+
+	preCap = cap; // 正当なデータだった場合のみ更新
+
+	SumV += diff;
+	NumV++;
+
+	if (NumV >= TARGET_SAMPLES) {
+		snapSum = SumV;
+		snapNum = NumV;
+		SumV = 0;
+		NumV = 0;
+		DataReady = 1;
 	}
 }
 
-/////////////////////////////////////////////////
-// ＵＡＲＴ関連
 constexpr uint16_t BAUD = 9600;
-
-
-constexpr uint16_t USART_Baud(uint16_t baudrate){
+constexpr uint16_t UART_Baud(uint16_t baudrate){
 	return F_CPU/16/baudrate-1;
 }
 
-uint8_t txbuf[16],txn=0;
-volatile uint8_t txp=0;
+int main(void) {
+	// USART初期化 (9600bps @ 8MHz)
+	// UBRRH/UBRRL: USARTボーレートレジスタ（上位/下位8ビット）
+	// ボーレート設定値 = F_CPU/(16*baudrate) - 1
+	UBRRH = 0;
+	UBRRL = UART_Baud(BAUD);
+	// UCSRB: USART制御&ステータスレジスタB
+	// TXEN: 送信機能有効化ビット
+	UCSRB = (1 << TXEN); // enable TxD
+	// UCSRC: USART制御&ステータスレジスタC
+	// UCSZ1, UCSZ0: データビット長設定（11=8ビット）
+	// 8N1 = 8データビット、パリティなし、1ストップビット
+	UCSRC = (1 << UCSZ1) | (1 << UCSZ0); // 8N1
 
-ISR(USART_UDRE_vect){
-	if(txp<txn){
-		while ( !(UCSRA & (1<<UDRE)) );
-		UDR = txbuf[txp];
-		txp++;
-	} else {
-		UCSRB &= ~_BV(UDRIE);
-	}
-}
+	// Timer1初期化
+	// TCCR1A: Timer1制御レジスタA（波形生成モード等）
+	TCCR1A = 0;
+	// TCCR1B: Timer1制御レジスタB（クロック設定、入力キャプチャ設定）
+	// ICNC1 (ビット7): ノイズキャンセラ有効（入力信号の4サンプル一致で確定）
+	// ICES1 (ビット6): エッジ選択（1=立ち上がりエッジ、0=立ち下がりエッジ）
+	// CS11  (ビット1): クロック選択（CS12:CS11:CS10 = 010 で8分周）
+	TCCR1B = (1 << ICNC1) | (1 << ICES1) | (1 << CS11);
+	// TIMSK: タイマー割り込みマスクレジスタ
+	// ICIE1: インプットキャプチャ割り込み有効化ビット
+	TIMSK = (1 << ICIE1);
 
-void USART_Init(uint16_t ubrr){
-	UBRRH = (uint8_t)(ubrr>>8);
-	UBRRL = (uint8_t)ubrr;
-	UCSRC = (1<<USBS)|(3<<UCSZ0);
-	txp = 0;
-	UCSRB = (1<<RXEN)|(1<<TXEN)|(1<<UDRIE);
-}
-
-void USART_txt(uint8_t *txt,uint8_t len){
-	while(txp<txn);
-	cli();
-	memcpy(txbuf,txt,len);
-	txp=0;
-	txn=len;
-	UCSRB |= _BV(UDRIE);
 	sei();
-}
 
-void USART_znum(uint32_t num,bool crlf){
-	uint8_t s=1;    // ゼロサプレス中
-	uint32_t d=100000;
-	uint32_t n=num;
-	uint8_t  c,p=0,b[10];
-	while(d>0){
-		c=n/d; n=n%d;
-		d=d/10;
-		if(d==0) s=0;
-		if(s==0 || c!=0){
-			b[p++]=c+0x30;
-			s=0;
+	while (1) {
+		if (DataReady) {
+			cli();
+			auto currentSum = snapSum;
+			auto currentNum = snapNum;
+			DataReady = 0;
+			sei();
+			
+			if (lastNum == 0) {
+				lastSum = currentSum;
+				lastNum = currentNum;
+			}
+
+			// 今回の50個 + 前回の50個 = 計100個分で周波数を算出
+			auto totalSum = lastSum + currentSum;
+			auto totalNum = lastNum + currentNum;
+
+			// auto freq10000 = (uint32_t)((uint64_t)clk_base * 10000 * currentNum / currentSum);
+			auto freq10000 = (uint32_t)((uint64_t)clk_base * 10000 * totalNum / totalSum);
+
+			// 送信: "周波数*10000 サンプル数\r\n"
+			USART_num(freq10000);
+			USART_SendChar(' ');
+			USART_num(currentNum);
+			USART_SendChar('\r');
+			USART_SendChar('\n');
+
+			lastSum = currentSum;
+			lastNum = currentNum;
 		}
-	}
-	if(crlf){
-		b[p++]='\r';b[p++]='\n';
-	}else{
-		b[p++]=' ';
-	}
-	
-	USART_txt(b,p);
-}
-
-// 周波数の10000倍を求める
-constexpr float freq_root = 10000.* clk_base;
-void USART_freq(float *count,bool crlf){
-	if(*count > 1){
-		float f = freq_root/(*count);  
-		USART_znum(f,crlf);
-	}else{
-		USART_znum(0,crlf);
-	}
-}
-
-/////////////////////////////////////////////////
-// メイン
-int main(void)
-{
-	PORTB  = 0xFF; // 入力設定時のプルアップ有効
-	PORTD  = 0xFF; // 入力設定時のプルアップ有効
-	DDRD   = _BV(HEARTBEAT);     // PORT D5を出力に
-	DDRD  &= ~_BV(ICPPIN); // ICPピンを入力に
-	PORTD &= ~_BV(ICPPIN); // ICPピンのプルアップ無効化
-	PORTD  = _BV(UARTTX);  // PORT D1を出力に
-
-	TIMER1_Init();
-	USART_Init(USART_Baud(BAUD));
-
-	uint8_t skp = 5;   // 最初の何回かはデータを捨てる
-	bool flag = false;
-	static float filtered_average,average;
-	for(;;){
-		if(skp == 0){
-			UpdatePeriod(&average,&filtered_average);
-			USART_freq(&average,false);
-			USART_freq(&filtered_average,true);
-		}else{
-			skp--;
-		}
-		if(flag){
-			flag=false;
-			PORTD |= _BV(HEARTBEAT);
-		}else{
-			flag=true;
-			PORTD &= ~_BV(HEARTBEAT);
-		}
-		_delay_ms(1000);
 	}
 }
