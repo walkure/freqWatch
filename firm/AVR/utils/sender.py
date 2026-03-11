@@ -11,6 +11,7 @@ ttyDev = '/dev/ttyAMA0'
 
 ambientWriteKey = 'HOGEHOGE'
 ambientChannelId = 114514
+ambientDataId = 'd1'
 
 class ACFreqWatcher(asyncio.Protocol):
     def __init__ (self,queue):
@@ -73,7 +74,7 @@ class ACFreqSender:
         obj = {
                     'writeKey': ambientWriteKey,
                     'data':[
-                        {'d1': freq,}
+                        {ambientDataId: freq,}
                     ],
                 }
         try:
