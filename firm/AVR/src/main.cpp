@@ -4,7 +4,7 @@
 #include <avr/interrupt.h>
 
 // --- キャリブレーション用定数 ---
-constexpr uint32_t clk_base = F_CPU / 8;
+constexpr uint32_t clk_base = F_CPU / 8 + 32; // タイマーのクロック周波数（8分周後の値）+誤差補正
 constexpr uint16_t TARGET_SAMPLES =50;
 
 // --- 共有変数 ---
