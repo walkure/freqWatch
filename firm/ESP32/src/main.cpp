@@ -67,6 +67,9 @@ void IRAM_ATTR onInterval()
   portEXIT_CRITICAL_ISR(&intervalMux);
 }
 
+// 連続でこの回数(≒秒)送信に失敗したら再起動する
+const uint16_t maxSendFailures = 300;
+
 volatile uint8_t ambientCount = 0;
 volatile extern float metricFreq;
 void loop()
@@ -94,9 +97,43 @@ void loop()
   }
   // dumpSerial(simple,filtered);
 
+  // Wi-Fiが切れていたら再接続を試みる
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    Serial.println("WiFi disconnected. reconnecting");
+    WiFi.reconnect();
+  }
+
   char fbuff[16];
   dtostrf(filtered, 6, 4, fbuff);
-  sendFreqMetric(fbuff);
+  static uint16_t sendFailures = 0;
+  if (sendFreqMetric(fbuff))
+  {
+    if (sendFailures > 0)
+    {
+      // 復旧したら2行目をIPアドレス表示に戻す
+      AQMI2CLCD.setLocate(0, 1);
+      AQMI2CLCD.print("                ");
+      AQMI2CLCD.setLocate(0, 1);
+      AQMI2CLCD.print(WiFi.localIP());
+    }
+    sendFailures = 0;
+  }
+  else
+  {
+    sendFailures++;
+    if (sendFailures >= maxSendFailures)
+    {
+      // 送信失敗が続いたら再起動して復旧を試みる
+      Serial.println("too many send failures. restarting");
+      ESP.restart();
+    }
+    // 送信失敗中は2行目に失敗回数を表示
+    char ebuff[17];
+    snprintf(ebuff, sizeof(ebuff), "SEND ERR %-7u", sendFailures);
+    AQMI2CLCD.setLocate(0, 1);
+    AQMI2CLCD.print(ebuff);
+  }
   AQMI2CLCD.returnHome();
   AQMI2CLCD.print(fbuff);
   Serial.print(fbuff);

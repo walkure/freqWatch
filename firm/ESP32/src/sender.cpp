@@ -15,7 +15,7 @@ public:
 
 _NullStream nst;
 
-void sendFreqMetric(const char *freqMetric)
+bool sendFreqMetric(const char *freqMetric)
 {
     mbedtls_md_context_t ctx;
     // https://github.com/wolfeidau/mbedtls/blob/master/mbedtls/md.h#L39
@@ -43,7 +43,7 @@ void sendFreqMetric(const char *freqMetric)
     if (!http.begin(dataUri))
     {
         Serial.println("cannot begin");
-        return;
+        return false;
     }
     //http.setConnectTimeout(1000);
     auto httpCode = http.GET();
@@ -53,17 +53,18 @@ void sendFreqMetric(const char *freqMetric)
         Serial.print(httpCode);
         Serial.print(" ");
         http.end();
-        return;
+        return false;
     }
     if (httpCode == HTTP_CODE_OK)
     {
         http.writeToStream(&nst);
         http.end();
-        return;
+        return true;
     }
     http.end();
 
     Serial.print("HE:");
     Serial.print(httpCode);
     Serial.print(" ");
+    return false;
 }

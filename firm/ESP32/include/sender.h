@@ -1,3 +1,3 @@
 #pragma once
 
-void sendFreqMetric(const char *freqMetric);
+bool sendFreqMetric(const char *freqMetric);
